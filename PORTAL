@@ -1,0 +1,104 @@
+# RPI-B -- Custom configuration for the Raspberry Pi
+#
+# For more information on this file, please read the handbook section on
+# Kernel Configuration Files:
+#
+#    http://www.FreeBSD.org/doc/en_US.ISO8859-1/books/handbook/kernelconfig-config.html
+#
+# The handbook is also available locally in /usr/share/doc/handbook
+# if you've installed the doc distribution, otherwise always see the
+# FreeBSD World Wide Web server (http://www.FreeBSD.org/) for the
+# latest information.
+#
+# An exhaustive list of options and more detailed explanations of the
+# device lines is also present in the ../../conf/NOTES and NOTES files. 
+# If you are in doubt as to the purpose or necessity of a line, check first 
+# in NOTES.
+#
+# $FreeBSD$
+
+ident		PORTAL
+
+include		"../broadcom/bcm2835/std.rpi"
+
+# Flattened Device Tree
+options         FDT
+makeoptions     FDT_DTS_FILE=rpi.dts
+
+options 	VFP		# vfp/neon
+
+# General Kernel Options
+#makeoptions	DEBUG=-g		#Build kernel with gdb(1) debug symbols
+options 	HZ=100
+
+options 	SCHED_4BSD		#4BSD scheduler
+options 	INET			#InterNETworking
+options		SCTP			#Stream Control Transmission Protocol
+options 	FFS			#Berkeley Fast Filesystem
+options 	SOFTUPDATES		#Enable FFS soft updates support
+options		GEOM_PART_BSD		#BSD Partition Scheme
+options		GEOM_PART_MBR		#MBR Partition Scheme
+options		TMPFS			#Efficient memory filesystem
+options 	PSEUDOFS		#Pseudo-filesystem framework
+options 	COMPAT_43		#Compatible with BSD 4.3 [KEEP THIS!]
+options 	SCSI_DELAY=500		#Delay (in ms) before probing SCSI
+options 	KTRACE			#ktrace(1) support
+options 	SYSVSHM			#SYSV-style shared memory
+options 	SYSVMSG			#SYSV-style message queues
+options 	SYSVSEM			#SYSV-style semaphores
+options 	_KPOSIX_PRIORITY_SCHEDULING #Posix P1003_1B real-time extensions
+options 	KBD_INSTALL_CDEV	#Install a CDEV entry in /dev
+options 	PREEMPTION
+device		snp			#TTY Snoop iface
+device		md			#Memory disks (malloc)
+device		random			#Entropy device
+device		loop			# loopback
+device		uart			# Serial iface driver
+device		pl011			# Serial control driver
+#options 	INET6			#IPv6 communications protocols
+#options 	MSDOSFS			#MSDOS Filesystem
+
+# Uncomment block for non-serial boot console
+#device		sc			# Virtual terminal driver
+#device		ukbd			# Keyboard support
+#device		pty			# Pseudo-TTYs
+#options		SC_DFLT_FONT    	# compile font in
+#makeoptions		SC_DFLT_FONT=cp437
+
+# MMC/SD Support
+device		sdhci			# PCI/SD bridge driver
+device		mmc			# SD/MMC Driver
+device		mmcsd			# SD/MMC Block access
+
+# Static Firewall Support
+device		gif			#IPv6/IPv4 Tunneling
+device		bpf			# Berkeley packet filter
+options		IPFIREWALL		#Enable ipfw
+options		IPDIVERT		#Enable NAT
+options		IPFIREWALL_VERBOSE	#Enable logging for rules with log k/w
+options		IPFIREWALL_VERBOSE_LIMIT=0	#No per-entry packet limits
+
+# USB support
+device		usb			# USB bus support
+device		dwcotg			# DWC OTG controller
+
+# USB ethernet support
+device		ether			# Generic Ethernet support
+device		smcphy
+device		mii			# MII Bus support
+device		smsc
+
+# USB wireless support
+device		ehci			# USB enhanced controller
+device		uhci			# USB UHCI controller
+device		ohci			# USB OHCI controller
+device		firmware		# Firmware image loading/management
+
+# WiFi Support
+device		wlan
+device		wlan_ccmp
+device		wlan_tkip
+device		wlan_wep
+device		wlan_amrr		# AMRR rate-adaptation algo
+device		urtwn			# Realtek RTL8188CU/RTL8192CU Driver
+

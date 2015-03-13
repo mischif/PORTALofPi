@@ -1,0 +1,50 @@
+## Experimental Feature
+# Run Tor in a syscall sandbox
+Sandbox 1
+
+## Experimental Feature
+# Prevent Tor-related pages from being swapped out
+# Requires root, use User to drop privs
+#DisableAllSwap 1
+
+# Run as "tor" user
+#User <uidgoeshere>
+
+# Daemonize Tor
+RunAsDaemon 1
+
+# Log all messages above _notice_ severity to syslog
+Log notice syslog
+
+# Since RPis run on flash mem, don't write so much
+AvoidDiskWrites 1
+
+# Allow malfunctioning Tor servers in only these circuit positions
+AllowInvalidNodes middle,rendezvous
+
+# Open Tor SOCKS port for lo0 and eth0
+SOCKSPort 192.168.254.1:9050
+SOCKSPort 127.0.0.1:9050
+
+# Reject SOCKS connections that do DNS resolve before connecting
+# SafeSocks 1
+
+# Make notice-level log for SOCKS connections that do DNS resolve before connecting
+TestSocks 1
+
+# Map .onion, .exit, etc. addresses to addresses in VirtualAddrNetwork range
+AutomapHostsOnResolve 1
+
+# Let Tor pick unused network address from this range
+VirtualAddrNetworkIPv4 192.168.127.0/24
+
+# Bind Tor to listen for transparent proxy connections here
+TransPort 192.168.254.1:9040
+TransPort 127.0.0.1:9040
+
+# Set the type of transparent proxy
+TransProxyType ipfw
+
+# Bind Tor to listen for domain names to anonymously resolve here
+DNSPort 192.168.254.1:53
+DNSPort 127.0.0.1:53

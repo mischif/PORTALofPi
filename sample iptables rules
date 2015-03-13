@@ -1,0 +1,55 @@
+iptables -F	#delete all rules
+iptables -X	#delete non-builtin chains
+iptables -Z	#zero packet counts
+iptables -t nat -Z 2>/dev/null
+iptables -t mangle -Z
+iptables -t nat -F
+iptables -t mangle -F
+
+    iptables -P INPUT DROP	#default drop policies
+    iptables -P FORWARD DROP
+    iptables -P OUTPUT DROP
+
+    # Established incoming connections are accepted.
+    iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    # Traffic on the loopback interface is accepted.
+    iptables -A INPUT -i lo -j ACCEPT
+
+
+	iptables -A OUTPUT -j ACCEPT -p icmp
+
+    # Established outgoing connections are accepted.
+    iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    # Internal network connections are accepted.
+    iptables -A OUTPUT -d 127.0.0.0/255.0.0.0 -j ACCEPT
+
+    # Local network connections should not go through Tor but DNS shall be
+    # rejected.
+    iptables -N lan
+    iptables -A lan -p TCP --dport domain -j REJECT
+    iptables -A lan -p UDP --dport domain -j REJECT
+    iptables -A lan -j ACCEPT
+
+    # Sort out traffic to local network
+    # Note that we exclude the VirtualAddrNetwork used for .onion:s here.
+    iptables -A OUTPUT -d 192.168.0.0/255.255.0.0 -j lan
+    iptables -A OUTPUT -d 10.0.0.0/255.0.0.0 -j lan
+    iptables -A OUTPUT -d 172.16.0.0/255.240.0.0 -j lan
+
+
+iptables -t nat -A OUTPUT ! -o lo -p tcp  -m tcp -j REDIRECT --to-ports 9040
+iptables -t nat -A OUTPUT -p udp --dport 53 - state --state NEW -j REDIRECT --to-ports 53
+iptables -t filter -A OUTPUT -p tcp -m tcp --dport 9040 -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -m udp --dport 53 -j ACCEPT
+#iptables -t filter -A OUTPUT ! -o lan -j DROP
+
+
+    # Everything else is dropped.
+#    iptables -A OUTPUT -j REJECT --reject-with icmp-port-unreachable
+
+    # log incomming connection attempts
+    iptables -A INPUT -p tcp -m tcp -m state --state NEW -j LOG --log-prefix "input(tcp) " -m limit --limit 1/minute
+    iptables -A INPUT ! -p tcp -j LOG --log-prefix "input(all) " -m limit --limit 1/minute
+

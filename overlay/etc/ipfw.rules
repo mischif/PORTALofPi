@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Firewall rules for FreeBSD PORTALofPi
+
+# Step -1: Set prefixes and labels
+
+FW="ipfw -q add"
+LAN="ue0"
+WAN="wlan0"
+
+# Step 0: Flush all old rules
+
+ipfw -q -f flush
+
+# Step 1: Allow Internet traffic over WAN
+# Right now this allows traffic over any port, will change for prod
+
+$FW 01 allow all from any to any via $WAN
