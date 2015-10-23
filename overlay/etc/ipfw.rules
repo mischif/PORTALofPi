@@ -12,45 +12,45 @@ WAN="wlan0"
 # Step 1: Flush all old rules
 ipfw -q -f flush
 
-# Step 1.5: include all the rules used for testing to be removed in prod
-$FW 001 deny udp from any to any recv $LAN
-
 # Step 2: Set up NAT translation
 $NAT 1 config if $WAN same_ports reset deny_in
 
+#$FW 001 deny udp from any to any not domain in recv $LAN
 # Step 3: Handle 127.0.0.0/8 and loopback traffic
 $FW 001 allow all from any to any via lo0
-$FW 002 deny all from any to 127.0.0.0/8
-$FW 003 deny all from 127.0.0.1 to any
+$FW 002 skipto 65534 log all from any to 127.0.0.0/8
+$FW 003 skipto 65534 log all from 127.0.0.1 to any
 
 # Step 4: Route public -> portal traffic
-$FW 005 skipto 100 all from any to me recv $WAN
+$FW 006 skipto 100 all from any to me in recv $WAN
 
 # Step 5: Route private -> portal traffic
-$FW 006 skipto 200 all from 192.168.254.0/24 to any recv $LAN
+$FW 007 skipto 200 all from 192.168.254.0/24 to any in recv $LAN
 
 # Step 6: Route portal -> public traffic
-$FW 007 skipto 300 all from any to any out xmit $WAN
+$FW 008 skipto 300 all from any to any out xmit $WAN
 
 # Step 7: Route portal -> private traffic
-$FW 008 skipto 400 all from any to 192.168.254.0/24 out xmit $LAN
+$FW 009 skipto 400 all from any to 192.168.254.0/24 out xmit $LAN
 
 # When all else fails...
-$FW 009 skipto 999 all from any to any
+$FW 010 skipto 65534 log all from any to any
 
 ######################################################################
 #                public -> portal traffic                            #
 ######################################################################
 
-# Check for dynamic table entries
-$FW 100 nat 1 all from any to any
-$FW 101 check-state
+# DeNAT and find out who the packet is meant for
+$FW 100 nat 1 all from any to me
 
 # Handle traffic terminating at the PORTAL
 $FW 102 allow all from any to me
 
+# Handle private-side traffic
+$FW 103 accept log all from any to 192.168.254.0/24
+
 # In case of a packet that surmounts these OTHERWISE IMPENETRABLE defenses
-$FW 199 skipto 999 all from any to any
+$FW 199 skipto 65534 log all from any to any
 
 
 ######################################################################
@@ -58,38 +58,60 @@ $FW 199 skipto 999 all from any to any
 ######################################################################
 
 # Handle traffic terminating at the PORTAL
-$FW 200 allow all from any to me
+$FW 200 allow all from any to me not domain
 
-# Direct all other Internet-bound traffic
-# Note: Right now this forwards all traffic directly,
-# In prod this will divert traffic to Tor proxy
-$FW 201 skipto 300 all from any to any keep-state
+# Send TCP traffic to be routed by Tor
+#$FW 201 fwd 127.0.0.1:9040 tcp from any to any
+$FW 201 allow tcp from any to any
 
-# In case of a packet that surmounts my OTHERWISE IMPENETRABLE defenses
-$FW 299 skipto 999 all from any to any
+# Since dhcpd tells clients to use the PORTAL as their DNS server,
+# all valid UDP traffic might end at the PORTAL anyway. Just in case,
+# Tor doesn't route UDP traffic other than DNS, so only send that
+#$FW 202 fwd 127.0.0.1:53 udp from any to any domain
+$FW 202 allow udp from any to any domain
+
+# A testing rule I can't add up top: allow pings until prod
+$FW 204 allow log icmp from any to any
+
+# Catch all packets that shouldn't be routed through Tor
+$FW 299 skipto 65534 log all from any to any
 
 ######################################################################
 #                portal -> public traffic                            #
 ######################################################################
 
-# Should be able to get away with NATting and sending out
-$FW 300 nat 1 all from any to any
-$FW 301 allow all from any to any
+# First, NAT the private-side traffic for release
+# Tor only works over TCP (including proxied DNS), so this's all we need
+$FW 300 nat 1 tcp from any to any
 
-# In case of a packet that surmounts my OTHERWISE IMPENETRABLE defenses
-$FW 399 skipto 999 all from any to any
+# NAT DNS traffic for captive portal stuff
+$FW 301 nat 1 udp from any to any domain
+
+# Then release all allowed traffic to WAN
+$FW 302 allow log tcp from me to any
+$FW 303 allow log udp from me to any domain
+
+# NAT pings for testing
+$FW 304 nat 1 icmp from any to any
+
+# Allow pings for testing
+$FW 305 allow log icmp from me to any
+
+# Catch all packets that shouldn't be broadcast
+$FW 399 skipto 65534 log all from any to any
 
 ######################################################################
 #                portal -> private traffic                           #
 ######################################################################
 
-$FW 400 allow all from any to any
+# The LAN says whatever it wants to the PORTAL (cuz there's nothing listening)
+$FW 400 allow log all from any to any
 
 # In case of a packet that surmounts my OTHERWISE IMPENETRABLE defenses
-$FW 499 skipto 999 all from any to any
+$FW 499 skipto 65534 log all from any to any
 
 ######################################################################
 #                       When all else fails...                       #
 ######################################################################
 
-$FW 999 deny log all from any to any
+#$FW 999 deny all from any to any

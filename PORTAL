@@ -75,8 +75,6 @@ device		gif			#IPv6/IPv4 Tunneling
 device		bpf			# Berkeley packet filter
 options		IPFIREWALL		#Enable ipfw
 options		IPDIVERT		#Enable NAT
-options		IPFIREWALL_VERBOSE	#Enable logging for rules with log k/w
-options		IPFIREWALL_VERBOSE_LIMIT=0	#No per-entry packet limits
 
 # USB support
 device		usb			# USB bus support

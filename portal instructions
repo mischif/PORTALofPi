@@ -36,6 +36,8 @@ on portal
 
 chflags schg <important config files, etc>
 
+gotta install ntpd
+gotta wait for ntp to stabilize before starting tor
 look into kern_securelevel and jail_ options for rc.conf
 network={\n ssid="MySSID"\n scan_ssid=1\n psk="MyPassword"\n} in /etc/wpa_supplicant.conf
 network={\n ssid="MySSID"\n key_mgmt=none\n} in /etc/wpa_supplicant.conf
