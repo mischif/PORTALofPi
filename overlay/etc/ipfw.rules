@@ -2,17 +2,94 @@
 
 # Firewall rules for FreeBSD PORTALofPi
 
-# Step -1: Set prefixes and labels
+# Step 0: Set prefixes and labels
 
 FW="ipfw -q add"
+NAT="ipfw -q nat"
 LAN="ue0"
 WAN="wlan0"
 
-# Step 0: Flush all old rules
-
+# Step 1: Flush all old rules
 ipfw -q -f flush
 
-# Step 1: Allow Internet traffic over WAN
-# Right now this allows traffic over any port, will change for prod
+# Step 1.5: include all the rules used for testing to be removed in prod
+$FW 001 deny udp from any to any recv $LAN
 
-$FW 01 allow all from any to any via $WAN
+# Step 2: Set up NAT translation
+$NAT 1 config if $WAN same_ports reset deny_in
+
+# Step 3: Handle 127.0.0.0/8 and loopback traffic
+$FW 001 allow all from any to any via lo0
+$FW 002 deny all from any to 127.0.0.0/8
+$FW 003 deny all from 127.0.0.1 to any
+
+# Step 4: Route public -> portal traffic
+$FW 005 skipto 100 all from any to me recv $WAN
+
+# Step 5: Route private -> portal traffic
+$FW 006 skipto 200 all from 192.168.254.0/24 to any recv $LAN
+
+# Step 6: Route portal -> public traffic
+$FW 007 skipto 300 all from any to any out xmit $WAN
+
+# Step 7: Route portal -> private traffic
+$FW 008 skipto 400 all from any to 192.168.254.0/24 out xmit $LAN
+
+# When all else fails...
+$FW 009 skipto 999 all from any to any
+
+######################################################################
+#                public -> portal traffic                            #
+######################################################################
+
+# Check for dynamic table entries
+$FW 100 nat 1 all from any to any
+$FW 101 check-state
+
+# Handle traffic terminating at the PORTAL
+$FW 102 allow all from any to me
+
+# In case of a packet that surmounts these OTHERWISE IMPENETRABLE defenses
+$FW 199 skipto 999 all from any to any
+
+
+######################################################################
+#                private -> portal traffic                           #
+######################################################################
+
+# Handle traffic terminating at the PORTAL
+$FW 200 allow all from any to me
+
+# Direct all other Internet-bound traffic
+# Note: Right now this forwards all traffic directly,
+# In prod this will divert traffic to Tor proxy
+$FW 201 skipto 300 all from any to any keep-state
+
+# In case of a packet that surmounts my OTHERWISE IMPENETRABLE defenses
+$FW 299 skipto 999 all from any to any
+
+######################################################################
+#                portal -> public traffic                            #
+######################################################################
+
+# Should be able to get away with NATting and sending out
+$FW 300 nat 1 all from any to any
+$FW 301 allow all from any to any
+
+# In case of a packet that surmounts my OTHERWISE IMPENETRABLE defenses
+$FW 399 skipto 999 all from any to any
+
+######################################################################
+#                portal -> private traffic                           #
+######################################################################
+
+$FW 400 allow all from any to any
+
+# In case of a packet that surmounts my OTHERWISE IMPENETRABLE defenses
+$FW 499 skipto 999 all from any to any
+
+######################################################################
+#                       When all else fails...                       #
+######################################################################
+
+$FW 999 deny log all from any to any
