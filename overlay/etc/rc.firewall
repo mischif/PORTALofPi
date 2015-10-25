@@ -85,11 +85,11 @@ $FW 299 skipto 65534 log all from any to any
 $FW 300 nat 1 tcp from any to any
 
 # NAT DNS traffic for captive portal stuff
-$FW 301 nat 1 udp from any to any domain
+$FW 301 nat 1 udp from any to any domain,ntp
 
 # Then release all allowed traffic to WAN
 $FW 302 allow log tcp from me to any
-$FW 303 allow log udp from me to any domain
+$FW 303 allow log udp from me to any domain,ntp
 
 # NAT pings for testing
 $FW 304 nat 1 icmp from any to any
