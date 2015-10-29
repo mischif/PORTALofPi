@@ -19,7 +19,7 @@ RPI_GPU_MEM=16
 # Each board setup above defines a default value, but it's deliberately
 # chosen to be very small.
 
-option ImageSize 400mb
+option ImageSize 450
 
 # "AutoSize" adds a startup item that will use "growfs" to grow the
 # UFS partition as large as it can.  This can be used to construct
@@ -66,34 +66,36 @@ customize_freebsd_partition ( ) {
 	chroot . ln -s /usr/include /usr/obj/arm.armv6/usr/src/tmp/usr/include
 
 	echo "Making final tweaks"
-	cp /etc/resolv.conf ./etc/resolv.conf
 	chroot . service ldconfig start
 
+	echo "Installing pkg"
+	env PATH=/usr/obj/arm.armv6/usr/src/tmp/bin:${PATH} make -C /usr/ports/ports-mgmt/pkg DESTDIR=${NEWROOT} install clean
+
 	echo "Installing Tor"
-	time -a -o ${TOPDIR}/tor_install_native.log env PATH=/usr/obj/arm.armv6/usr/src/tmp/usr/bin:${PATH} make -C /usr/ports/security/tor-devel DESTDIR=${NEWROOT} install | tee ${TOPDIR}/tor_install_native.log
+	time -a -o ${TOPDIR}/tor_install_native.log env PATH=/usr/obj/arm.armv6/usr/src/tmp/usr/bin:${PATH} make -j 4 -C /usr/ports/security/tor DESTDIR=${NEWROOT} install | tee ${TOPDIR}/tor_install_native.log
 
-	make -C /usr/ports/security/tor-devel DESTDIR=${NEWROOT} clean
+	make -C /usr/ports/security/tor DESTDIR=${NEWROOT} clean
 
-	echo "Installing DHCP 4.3"
-	time -a -o ${TOPDIR}/dhcp43_install_native.log env PATH=/usr/obj/arm.armv6/usr/src/tmp/usr/bin:${PATH} make -C /usr/ports/net/isc-dhcp43-server DESTDIR=${NEWROOT} install | tee ${TOPDIR}/dhcp43_install_native.log
+	echo "Installing dnsmasq"
+	time -a -o ${TOPDIR}/dnsmasq_install_native.log env PATH=/usr/obj/arm.armv6/usr/src/tmp/usr/bin:${PATH} make -C /usr/ports/dns/dnsmasq DESTDIR=${NEWROOT} install | tee ${TOPDIR}/dnsmasq_install_native.log
 
-	make -C /usr/ports/net/isc-dhcp43-server DESTDIR=${NEWROOT} clean
+	make -C /usr/ports/dns/dnsmasq DESTDIR=${NEWROOT} clean
 
 	echo "Installing vim"
 	time -a -o ${TOPDIR}/vim_install_native.log env PATH=/usr/obj/arm.armv6/usr/src/tmp/usr/bin:${PATH} make -C /usr/ports/editors/vim-lite DESTDIR=${NEWROOT} install | tee ${TOPDIR}/vim_install_native.log
 
 	make -C /usr/ports/editors/vim-lite DESTDIR=${NEWROOT} clean
 
-	echo "Removing emulator"
+	echo "Cleanup: removing build dependencies"
+	chroot . pkg autoremove -yq
+
+	echo "Cleanup: removing emulator"
 	rm ./usr/local/bin/qemu-arm-static
 
-	echo "Removing ports configs"
+	echo "Cleanup: removing ports configs"
 	rm -r ./var/db/ports/*
 
-	echo "Removing native toolchain support"
+	echo "Cleanup: removing native toolchain support"
 	rm ./usr/obj/arm.armv6/usr/src/tmp/usr/include
 	umount ./usr/obj
-
-	echo "Cleaning up other odds/ends"
-	rm ./etc/resolv.conf
 }

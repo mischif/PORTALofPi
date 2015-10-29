@@ -1,6 +1,6 @@
 # Open Tor SOCKS port for lo0 and ue0
 SOCKSPort 192.168.254.1:9050
-SOCKSPort 127.0.0.1:9050
+#SOCKSPort 127.0.0.1:9050
 
 # Reject SOCKS connections that do DNS resolve before connecting
 # SafeSocks 1
@@ -9,21 +9,19 @@ SOCKSPort 127.0.0.1:9050
 TestSocks 1
 
 # Bind Tor to listen for transparent proxy connections here
-TransPort 192.168.254.1:9040
 TransPort 127.0.0.1:9040
 
 # Set the type of transparent proxy
 TransProxyType ipfw
 
 # Bind Tor to listen for domain names to anonymously resolve here
-DNSPort 192.168.254.1:53
-DNSPort 127.0.0.1:53
+DNSPort 127.0.0.1:5353
 
 # Map .onion, .exit, etc. addresses to addresses in VirtualAddrNetwork range
 AutomapHostsOnResolve 1
 
 # Let Tor pick unused network address from this range
-VirtualAddrNetworkIPv4 172.16.28.0/22
+VirtualAddrNetworkIPv4 172.30.0.0/15
 
 # Allow malfunctioning Tor servers in only these circuit positions
 AllowInvalidNodes middle,rendezvous
@@ -36,10 +34,6 @@ RunAsDaemon 1
 
 # Since RPis run on flash mem, don't write so much
 AvoidDiskWrites 1
-
-## Experimental Feature
-# Run Tor in a syscall sandbox
-Sandbox 1
 
 ## Experimental Feature
 # Prevent Tor-related pages from being swapped out

@@ -4,23 +4,23 @@ Builder VM
 
 -----------Stage 1--------------
 portsnap fetch extract
-pkg install subversion python gmake gsed git qemu-user-static
+pkg install python git gmake arm-none-eabi-gcc qemu-user-static
 (you shouldn't need vim, but pkg install vim-lite if you do)
-svn co https://svn0.us-east.freebsd.org/base/release/10.1.0 /usr/src
-git clone https://github.com/kientzle/crochet-freebsd.git /root/crochet-freebsd
-git clone https://github.com/gonzoua/u-boot-pi.git /root/crochet-freebsd/u-boot-rpi
+git clone --depth 1 --branch release/10.2.0 https://github.com/freebsd/freebsd.git /usr/src
+git clone --depth 1 https://github.com/kientzle/crochet-freebsd.git /root/crochet-freebsd
+make -C /usr/ports/sysutils/u-boot-rpi install
+
 
 make -C /usr/ports/security/tor-devel fetch-recursive
-make -C /usr/ports/net/isc-dhcp43-server fetch-recursive
+make -C /usr/ports/dns/dnsmasq fetch-recursive
 make -C /usr/ports/editors/vim-lite fetch-recursive
 make -C /usr/ports/ports-mgmt/dialog4ports fetch-recursive
+make -C /usr/ports/ports-mgmt/pkg fetch-recursive
 
 -----------Stage 2---------------
-make -C /usr/src XDEV=arm XDEV_ARCH=armv6 WITH_GCC=1 WITH_GCC_BOOTSTRAP=1 WITHOUT_CLANG=1 WITHOUT_CLANG_BOOTSTRAP=1 WITHOUT_CLANG_IS_CC=1 WITHOUT_TESTS=1 -j 4 xdev
+copy custom kernel config into /sys/arm/conf/rpi-b
 
 env TARGET=arm TARGET_ARCH=armv6 MAKEOBJDIRPREFIX=/usr/obj make -C /usr/src -j 4 toolchain
-
-copy custom kernel config into /sys/arm/conf/rpi-b
 
 -----------Stage 3---------------
 binmiscctl add armv6 --interpreter "/usr/local/bin/qemu-arm-static" --magic "\x7f\x45\x4c\x46\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x28\x00" --mask "\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff" --size 20 --set-enabled

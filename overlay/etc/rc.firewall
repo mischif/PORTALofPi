@@ -21,6 +21,9 @@ $FW 001 allow all from any to any via lo0
 $FW 002 skipto 65534 log all from any to 127.0.0.0/8
 $FW 003 skipto 65534 log all from 127.0.0.1 to any
 
+# Step 4: Handle DHCP requests
+$FW 004 allow udp from any to any bootps,bootpc in recv $LAN
+
 # Step 4: Route public -> portal traffic
 $FW 006 skipto 100 all from any to me in recv $WAN
 
@@ -58,17 +61,17 @@ $FW 199 skipto 65534 log all from any to any
 ######################################################################
 
 # Handle traffic terminating at the PORTAL
-$FW 200 allow all from any to me not domain
+$FW 200 allow all from any to me
 
 # Send TCP traffic to be routed by Tor
-#$FW 201 fwd 127.0.0.1:9040 tcp from any to any
-$FW 201 allow tcp from any to any
+$FW 201 fwd 127.0.0.1:9040 log tcp from any to any
+#$FW 201 allow log tcp from any to any
 
 # Since dhcpd tells clients to use the PORTAL as their DNS server,
 # all valid UDP traffic might end at the PORTAL anyway. Just in case,
 # Tor doesn't route UDP traffic other than DNS, so only send that
 #$FW 202 fwd 127.0.0.1:53 udp from any to any domain
-$FW 202 allow udp from any to any domain
+#$FW 202 allow udp from any to any domain
 
 # A testing rule I can't add up top: allow pings until prod
 $FW 204 allow log icmp from any to any
