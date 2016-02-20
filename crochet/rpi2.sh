@@ -1,57 +1,31 @@
-# REQUIRED: 
-# Uncomment one to choose the default configuration for your board.
-#
-# THIS MUST BE THE FIRST LINE IN YOUR CONFIG.SH FILE!
-#
-# Don't see your board here?  board/NewBoardExample has details for
-# how to add a new board definition.  If you need help, ask.  If you
-# get it working, please consider contributing it.
-#
-# Read board/<board-name>/README for more details
-# about configuring for your particular board.
+################################################################################
+##                     ___  ___  ___ _____ _   _                              ##
+##                    | _ \/ _ \| _ \_   _/_\ | | of ._ o                     ##
+##                    |  _/ (_) |   / | |/ _ \| |__  |_)|                     ##
+##                    |_|  \___/|_|_\ |_/_/ \_\____| |                        ##
+##                                                                            ##
+##                       Original Concept by: the grugq                       ##
+##                         Implementation by: Mischif                         ##
+##                                                                            ##
+##                Raspberry Pi 2 Model B Crochet Config Script                ##
+################################################################################
 
-board_setup RaspberryPi
+board_setup RaspberryPi2
+
+KERNCONF=PORTAL
 
 RPI_GPU_MEM=16
 
-# Size of the disk image that will be built.  This is usually the same
-# size as your memory card or disk drive, but it can be smaller.
-# Each board setup above defines a default value, but it's deliberately
-# chosen to be very small.
+option ImageSize 500mb
 
-option ImageSize 450
-
-# "AutoSize" adds a startup item that will use "growfs" to grow the
-# UFS partition as large as it can.  This can be used to construct
-# small (e.g., 1GB) images that can be copied onto larger (e.g., 32GB)
-# media.  At boot, such images will automatically resize to fully
-# utilize the larger media.  This should be considered experimental:
-# FreeBSD's resize logic sometimes doesn't take effect until after a
-# couple of extra reboots, which can make this occasionally perplexing
-# to use.
+IMG=${TOPDIR}/PORTAL.img
 
 #option AutoSize
 
-# Create a user account with the specified username.
-# Password will be the same as the user name.
-#
-#option User portal
+option User portal
 
-# Each board picks a default KERNCONF but you can override it.
-#
-KERNCONF=PORTAL
-
-# The name of the final disk image.
-# This file will be as large as IMAGE_SIZE above, so make
-# sure it's located somewhere with enough space.
-#
-IMG=${WORKDIR}/PORTAL.img
-
-# Runs after FreeBSD partition is built and populated.
-# The current working directory is at the root of the mounted
-# freebsd partition.
 customize_freebsd_partition ( ) {
-	NEWROOT=`pwd`
+	NEWROOT=$(pwd)
 
 	echo "Copying armv6 emulator to image"
 	mkdir -p ./usr/local/bin
@@ -87,7 +61,7 @@ customize_freebsd_partition ( ) {
 	make -C /usr/ports/editors/vim-lite DESTDIR=${NEWROOT} clean
 
 	echo "Cleanup: removing build dependencies"
-	chroot . pkg autoremove -yq
+	chroot . pkg autoremove --yes --quiet
 
 	echo "Cleanup: removing emulator"
 	rm ./usr/local/bin/qemu-arm-static

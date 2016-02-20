@@ -1,0 +1,84 @@
+################################################################################
+##                     ___  ___  ___ _____ _   _                              ##
+##                    | _ \/ _ \| _ \_   _/_\ | | of ._ o                     ##
+##                    |  _/ (_) |   / | |/ _ \| |__  |_)|                     ##
+##                    |_|  \___/|_|_\ |_/_/ \_\____| |                        ##
+##                                                                            ##
+##                       Original Concept by: the grugq                       ##
+##                         Implementation by: Mischif                         ##
+##                                                                            ##
+##                    Raspberry Pi 2 Model B Kernel Config                    ##
+################################################################################
+
+ident		PORTAL
+
+include		"../broadcom/bcm2835/std.rpi"
+include 	"../broadcom/bcm2835/std.bcm2836"
+
+# Flattened Device Tree
+options         FDT
+makeoptions     MODULES_EXTRA=dtb/rpi
+
+# General Kernel Options
+options 	HZ=100
+
+options 	SCHED_ULE		# ULE scheduler
+options 	SMP			# Enable multiple cores
+options 	PLATFORM
+options 	INET			#InterNETworking
+options 	FFS			#Berkeley Fast Filesystem
+options 	SOFTUPDATES		#Enable FFS soft updates support
+options		GEOM_PART_BSD		#BSD Partition Scheme
+options		GEOM_PART_MBR		#MBR Partition Scheme
+options		TMPFS			#Efficient memory filesystem
+options 	COMPAT_43		#Compatible with BSD 4.3 [KEEP THIS!]
+options 	SCSI_DELAY=500		#Delay (in ms) before probing SCSI
+options 	SYSVSHM			#SYSV-style shared memory
+options 	SYSVMSG			#SYSV-style message queues
+options 	SYSVSEM			#SYSV-style semaphores
+options 	_KPOSIX_PRIORITY_SCHEDULING #Posix P1003_1B real-time extensions
+options 	VFP			# Enable floating point hardware support
+#options 	KTRACE			#ktrace(1) support
+#options 	PREEMPTION
+#options 	PROCFS			#Process filesystem (requires PSEUDOFS)
+#options 	PSEUDOFS		#Pseudo-filesystem framework
+#device		snp			#TTY Snoop iface
+device		md			#Memory disks (malloc)
+device		random			#Entropy device
+device		loop			# loopback
+device		uart			# Serial iface driver
+device		pl011			# Serial control driver
+
+# MMC/SD Support
+device		sdhci			# PCI/SD bridge driver
+device		mmc			# SD/MMC Driver
+device		mmcsd			# SD/MMC Block access
+
+# Static Firewall Support
+device		bpf			#Berkeley packet filter
+options		IPFIREWALL		#Enable ipfw
+options		IPDIVERT		#Enable NAT
+
+# USB support
+device		usb			# USB bus support
+device		dwcotg			# DWC OTG controller
+
+# USB ethernet support
+device		ether			# Generic Ethernet support
+device		mii			# MII Bus support
+device		smcphy			# SMSC LAN91C111 driver
+device		smsc
+
+# USB wireless support
+device		ehci			# USB enhanced controller
+device		uhci			# USB UHCI controller
+device		ohci			# USB OHCI controller
+device		firmware		# Firmware image loading/management
+
+# WiFi Support
+device		wlan
+device		wlan_ccmp
+device		wlan_tkip
+device		wlan_wep
+device		wlan_amrr		# AMRR rate-adaptation algo
+device		driverhere		# WiFi driver
