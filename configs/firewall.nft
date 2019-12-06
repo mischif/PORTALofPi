@@ -1,0 +1,85 @@
+#!/usr/sbin/nft -f
+
+# Step -1: Set prefixes and labels
+
+define LAN_ADDR = 172.16.254.1
+define LAN = eth0
+define WAN = wlan0
+
+# Step 0: Flush all old rules
+
+flush ruleset
+
+# Step 1: Construct new ruleset framework
+
+create table main
+add chain main input {type filter hook input priority 0; policy drop;}
+add chain main output {type filter hook output priority 0; policy drop;}
+add chain main proxy {type filter hook prerouting priority -150; policy accept;}
+add chain main prerouting {type nat hook prerouting priority -100; policy accept;}
+add chain main postrouting {type nat hook postrouting priority 100; policy accept;}
+
+# Step 2: Set baseline firewall rules
+add rule main input iif $WAN udp sport {bootpc, 137, 138} drop
+add rule main input ct state invalid drop
+add rule main input ct state {established, related} accept
+add rule main output ct state invalid drop
+add rule main output ct state {established, related} accept
+
+# Step X: Handle loopback traffic
+add rule main input iif lo accept
+add rule main output oif lo accept
+
+# Step X: Handle DHCP requests
+# Apparently this is superfluous as DHCP packets do not go through the normal
+# network stack, and thus are not filtered by firewalls.
+# https://serverfault.com/questions/191390/iptables-and-dhcp-questions
+add rule main input iif $LAN udp sport bootpc udp dport bootps accept
+add rule main output oif $LAN udp sport bootps udp dport bootpc accept
+
+# Step X: Handle allowed UDP traffic
+add rule main output oif $WAN udp dport {domain, ntp} accept
+
+# Drop NTP traffic from the client for now,
+# in the future I'll stand up an NTP server on the PORTAL
+add rule main proxy iif $LAN udp dport ntp drop
+
+# Step X: Handle client -> internet traffic
+add rule main proxy iif $LAN ip daddr != $LAN_ADDR ip protocol tcp meta mark set 1 tproxy to 127.0.0.1:9040 accept
+add rule main input meta mark 1 accept
+add rule main output oif $WAN ip protocol tcp accept
+
+# Step X: Handle client -> PORTAL traffic
+add rule main input iif $LAN tcp dport {domain, 9040, 9050} accept
+add rule main input iif $LAN udp dport domain accept
+
+# Step X: Handle PORTAL -> internet traffic
+add rule main postrouting oif $WAN masquerade
+
+# Step X: Handle PORTAL -> client traffic
+# The PORTAL should never make an initial connection to the client computer;
+# it only responds to DHCP/DNS requests in addition to responses from the
+# Tor proxies. Responses to client computer requests should be covered by
+# the output state rules in step 2
+
+# Step X: Handle internet -> PORTAL traffic
+# The only packets coming from the internet for the PORTAL should be DNS
+# or NTP responses, which should be covered by the input state rules in
+# step 2
+
+# Step X: Handle internet -> client traffic
+# The only packets coming from the internet for the client computer in
+# production should be either DNS responses (which pass through Tor and
+# dnsmasq first) or proxied connections (which pass through Tor first);
+# thus these scenarios are equivalent to the ones in step X and step X,
+# and should be covered by the same rules
+
+# Test rules; remove for production
+add chain main forward {type filter hook forward priority 0; policy drop;}
+add rule main forward ip protocol icmp accept
+add rule main output ip protocol icmp accept
+add rule main forward log level alert prefix "Failed forward chain ruleset: " drop
+
+# Step X: If all else fails...
+add rule main input log level alert prefix "Failed input chain ruleset: " drop
+add rule main output log level alert prefix "Failed output chain ruleset: " drop

@@ -1,0 +1,24 @@
+http://clients3.google.com/generate_204
+Always 204 status code, no body
+
+http://www.google.com/blank.html
+Always 200 status code, empty body
+
+http://www.apple.com/library/test/success.html / http://captive.apple.com / http://detectportal.firefox.com/success.txt
+Always 200 status code, body says "Success"
+
+neverssl.com
+
+dns.msftncsi.com always resolves to 131.107.255.255
+google-public-dns-a.google.com always resolves to 8.8.8.8
+google-public-dns-b.google.com always resolves to 8.8.4.4
+always resolves to 4.2.2.1
+always resolves to 4.2.2.2
+always resolves to 208.67.222.222
+always resolves to 208.67.220.220
+
+27.182.81.83
+31.41.59.26
+161.80.33.98
+
+Responses from DNS-based captive portals usually have 0 TTL
