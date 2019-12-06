@@ -28,8 +28,8 @@ EOF
 	sed -ie 's|# %wheel ALL=(ALL) N|%wheel ALL=(ALL) N|' /etc/sudoers
 }
 
-build_iso () {
-if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.iso" ] ; then return 0; fi
+build_image () {
+if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then return 0; fi
 
 	if [ -d "/home/build/.abuild" ] ; then
 		echo "Signing keys already created; skipping"
@@ -45,13 +45,13 @@ su -l build -c "cd /media/sda1/aports/scripts && BOARD=${BOARD} ./mkimage.sh \
 	--repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
 	--extra-repository http://dl-cdn.alpinelinux.org/alpine/edge/community"
 
-if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.iso" ] ; then
-	echo "Build complete"
+if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
+	echo "Build complete; exiting image builder"
 else
-	echo "There was an issue building the image"
+	echo "There was an issue building the image; exiting image builder"
 fi
 }
 
 configure_system
-build_iso
+build_image
 poweroff

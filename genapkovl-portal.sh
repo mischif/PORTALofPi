@@ -42,7 +42,7 @@ mkdir -p "$tmp"/etc/apk
 cat "${CONFIGS_DIR}/portal-world.conf" | makefile root:root 0644 "$tmp"/etc/apk/world
 
 mkdir -p "$tmp"/etc/conf.d
-cat "${CONFIGS_DIR}/interfaces.conf" | makefile root:root 0644 "$tmp"/etc/conf.d/nftables
+cat "${CONFIGS_DIR}/nftables.conf" | makefile root:root 0644 "$tmp"/etc/conf.d/nftables
 
 mkdir -p "$tmp"/etc/network
 cat "${CONFIGS_DIR}/interfaces.conf" | makefile root:root 0644 "$tmp"/etc/network/interfaces
@@ -53,13 +53,19 @@ cat "${CONFIGS_DIR}/sysctl.conf" | makefile root:root 0644 "$tmp"/etc/sysctl.d/0
 mkdir -p "$tmp"/etc/tor
 cat "${CONFIGS_DIR}/torrc" | makefile root:root 0644 "$tmp"/etc/tor/torrc
 
+if [ -e "${CONFIGS_DIR}/wireless.conf" ] ; then
+	mkdir -p "$tmp"/etc/wpa_supplicant
+	cat "${CONFIGS_DIR}/wireless.conf" | makefile root:root 0644 "$tmp"/etc/wpa_supplicant/wpa_supplicant.conf
+	rc_add wpa_supplicant boot
+fi
+
 rc_add devfs sysinit
 rc_add dmesg sysinit
 rc_add mdev sysinit
 rc_add hwdrivers sysinit
 rc_add modloop sysinit
 
-rc_add hwclock boot
+rc_add swclock boot
 rc_add modules boot
 rc_add sysctl boot
 rc_add hostname boot
@@ -67,8 +73,9 @@ rc_add bootmisc boot
 rc_add syslog boot
 rc_add networking boot
 
-rc_add dnsmasq default
 rc_add nftables default
+rc_add ntpd default
+rc_add dnsmasq default
 rc_add tor default
 
 rc_add mount-ro shutdown

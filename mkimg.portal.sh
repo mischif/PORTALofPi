@@ -5,9 +5,32 @@ portal_gen_cmdline() {
 portal_gen_config() {
 
 	case "${BOARD}" in
+	RPI1 )
+		cat <<-RPI1
+			initramfs boot/initramfs-rpi
+			kernel=boot/vmlinuz-rpi
+			include usercfg.txt
+			RPI1
+		;;
+
+	RPI2 )
+		cat <<-RPI2
+			initramfs boot/initramfs-rpi2
+			kernel=boot/vmlinuz-rpi2
+			include usercfg.txt
+			RPI2
+		;;
+
+	# Using RPi4 initramfs/kernel b/c nftables kernel modules
+	# are solely missing from aarch64 package of linux-rpi;
+	# they're available in armhf/armv7 versions of package,
+	# as well as aarch64 package of linux-rpi4
 	RPI3 )
 		cat <<-RPI3
 			arm_control=0x200
+			initramfs boot/initramfs-rpi4
+			kernel=boot/vmlinuz-rpi4
+			include usercfg.txt
 			RPI3
 		;;
 
@@ -15,37 +38,10 @@ portal_gen_config() {
 		cat <<-RPI4
 			arm_64bit=1
 			enable_gic=1
+			initramfs boot/initramfs-rpi4
+			kernel=boot/vmlinuz-rpi4
+			include usercfg.txt
 			RPI4
-		;;
-		
-	* )
-		pass
-		;;
-	esac
-
-	case "${ARCH}" in
-	armhf )
-		cat <<-ARMHF
-			initramfs boot/initramfs-rpi
-			kernel=boot/vmlinuz-rpi
-			include usercfg.txt
-			ARMHF
-		;;
-
-	armv7 )
-		cat <<-ARMV7
-			initramfs boot/initramfs-rpi2
-			kernel=boot/vmlinuz-rpi2
-			include usercfg.txt
-			ARMV7
-		;;
-
-	aarch64 )
-		cat <<-AARCH64
-			initramfs boot/initramfs-rpi
-			kernel=boot/vmlinuz-rpi
-			include usercfg.txt
-			AARCH64
 		;;
 	esac
 }
@@ -79,15 +75,30 @@ profile_portal() {
 	desc="Raspberry Pi-based Tor isolating proxy"
 	apkovl="genapkovl-portal.sh"
 	apks="${apks} dnsmasq nftables tor tor-openrc wpa_supplicant"
-	arch="aarch64 armhf armv7"
 	hostname="portal"
-	image_ext="iso"
+	image_ext="tar.gz"
 	initfs_features="base squashfs mmc usb kms dhcp https"
 	kernel_cmdline="console=ttyAMA0,115200"
-	case "$ARCH" in
-		armhf) kernel_flavors="rpi";;
-		armv7) kernel_flavors="rpi2";;
-		aarch64) kernel_flavors="rpi";;
+	case "${BOARD}" in
+	RPI1 )
+		arch="armhf"
+		kernel_flavors="rpi"
+		;;
+
+	RPI2 )
+		arch="armv7"
+		kernel_flavors="rpi2"
+		;;
+
+	RPI3 )
+		arch="aarch64"
+		kernel_flavors="rpi4"
+		;;
+
+	RPI4 )
+		arch="aarch64"
+		kernel_flavors="rpi4"
+		;;
 	esac
-	grub_mod=
+	unset grub_mod
 }

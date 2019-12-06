@@ -29,6 +29,7 @@ ARCH=""
 BOARD=""
 LATEST_VERSION=""
 MODEL=0
+QEMU_EMULATOR=""
 TARBALL=""
 
 cleanup() {
@@ -43,11 +44,11 @@ cleanup() {
 	rm -f "${PORTALDIR}/initramfs-vanilla-orig"
 	rm -f "${PORTALDIR}/${BOARD}_system.img"
 
-# if [ -e "portal-${BOARD}.iso" ] ; then
-# 	rm -rf "${PORTALDIR}/aports"
-# 	rm -f "${PORTALDIR}/u-boot.bin"
-# 	rm -f "${PORTALDIR}/${TARBALL}"
-# fi
+if [ -e "portal-${BOARD}.tar.gz" ] ; then
+	rm -rf "${PORTALDIR}/aports"
+	rm -f "${PORTALDIR}/u-boot.bin"
+	rm -f "${PORTALDIR}/${TARBALL}"
+fi
 }
 
 stage_0() {
@@ -88,9 +89,6 @@ while true; do
 done
 
 if [ ${ARCH} != "" -a ${BOARD} != "" ] ; then
-	LATEST_VERSION=$(curl -s "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/" | sed -n "s|.*>alpine-uboot-\([0-9\.]*\)-${ARCH}.tar.gz<.*|\1|p" | sort -rn | head -n 1)
-	TARBALL="alpine-uboot-${LATEST_VERSION}-${ARCH}.tar.gz"
-	mkdir ${LOOP_MNT}
 	return 0
 else
 	echo "There was an issue getting the configuration"
@@ -99,21 +97,35 @@ fi
 }
 
 stage_1() {
+	if [ ${ARCH} == "aarch64" ] ; then
+		QEMU_EMULATOR="aarch64"
+	else
+		QEMU_EMULATOR="arm"
+	fi
+
+	mkdir ${LOOP_MNT}
+
+	LATEST_VERSION=$(curl -s "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/" | sed -n "s|.*>alpine-uboot-\([0-9\.]*\)-${ARCH}.tar.gz<.*|\1|p" | sort -rn | head -n 1)
+	TARBALL="alpine-uboot-${LATEST_VERSION}-${ARCH}.tar.gz"
+
+	if [ -d ${LOOP_MNT} -a ${LATEST_VERSION} != "" ] ; then
+		return 0
+	else
+		echo "There was an issue setting constants"
+		return 1
+	fi
+}
+
+stage_2() {
 ################################################################################
 ##                                                                            ##
-##            Stage 1: Collect all files necessary to build PORTAL            ##
+##            Stage 2: Collect all files necessary to build PORTAL            ##
 ##                                                                            ##
 ################################################################################
 
-if [ -e "${PORTALDIR}/${BOARD}_stage_1_success" ] ; then return 0; fi
+if [ -e "${PORTALDIR}/${BOARD}_stage_2_success" ] ; then return 0; fi
 
-if [ ${ARCH} == "aarch64" ] ; then
-	local QEMU_EMULATOR="qemu-system-aarch64"
-else
-	local QEMU_EMULATOR="qemu-system-arm"
-fi
-
-apk add squashfs-tools sudo util-linux coreutils qemu-img parted ${QEMU_EMULATOR}
+apk add squashfs-tools sudo util-linux coreutils qemu-img parted qemu-system-${QEMU_EMULATOR}
 
 
 if [ -d "${PORTALDIR}/aports" ] ; then
@@ -139,7 +151,7 @@ else
 fi
 
 if [ $? == 0 ] ; then
-	touch "${PORTALDIR}/${BOARD}_stage_1_success"
+	touch "${PORTALDIR}/${BOARD}_stage_2_success"
 	return 0
 else
 	echo "There was an issue downloading the necessary packages"
@@ -147,14 +159,14 @@ else
 fi
 }
 
-stage_2() {
+stage_3() {
 ################################################################################
 ##                                                                            ##
 ##                    Stage 2: Compile the cross-toolchain                    ##
 ##                                                                            ##
 ################################################################################
 
-if [ -e "${PORTALDIR}/${BOARD}_stage_2_success" ] ; then return 0; fi
+if [ -e "${PORTALDIR}/${BOARD}_stage_3_success" ] ; then return 0; fi
 
 if [ -e "${PORTALDIR}/${BOARD}_system.img" ] ; then
 	echo "${BOARD} system image already exists; skipping"
@@ -201,7 +213,7 @@ else
 	cp -r "${PORTALDIR}/aports" ${LOOP_MNT}
 	cp "${PORTALDIR}/mkimg.portal.sh" "${LOOP_MNT}/aports/scripts"
 	cp "${PORTALDIR}/genapkovl-portal.sh" "${LOOP_MNT}/aports/scripts"
-	cat "${PORTALDIR}/iso_builder.sh" | sed -e "s|^ARCH=|ARCH=${ARCH}|" | sed -e "s|^BOARD=|BOARD=${BOARD}|" > "${LOOP_MNT}/iso_builder.sh"
+	cat "${PORTALDIR}/image_builder.sh" | sed -e "s|^ARCH=|ARCH=${ARCH}|" | sed -e "s|^BOARD=|BOARD=${BOARD}|" > "${LOOP_MNT}/image_builder.sh"
 
 	# Clean up
 	sync
@@ -210,7 +222,7 @@ else
 fi
 
 if [ $? == 0 ] ; then
-	touch "${PORTALDIR}/${BOARD}_stage_2_success"
+	touch "${PORTALDIR}/${BOARD}_stage_3_success"
 	return 0
 else
 	echo "There was an issue building the cross-toolchain"
@@ -218,17 +230,18 @@ else
 fi
 }
 
-stage_3() {
+stage_4() {
 ################################################################################
 ##                                                                            ##
 ##                  Stage 3: Begin building the PORTAL image                  ##
 ##                                                                            ##
 ################################################################################
 
-if [ -e "portal-${BOARD}.iso" ] ; then return 0; fi
+if [ -e "portal-${BOARD}.tar.gz" ] ; then return 0; fi
 
-echo "Booting ISO builder"
-qemu-system-aarch64 \
+echo "Booting image builder"
+
+qemu-system-${QEMU_EMULATOR} \
 	-nographic \
 	-machine virt \
 	-cpu cortex-a57 \
@@ -240,15 +253,15 @@ qemu-system-aarch64 \
 	-device ich9-ahci,id=ahci \
 	-device ide-drive,drive=inst-disk,bus=ahci.0
 
-echo "Retrieving ISO"
+echo "Retrieving image"
 losetup -o 1048576 /dev/loop1 "${PORTALDIR}/${BOARD}_system.img"
 mount /dev/loop1 ${LOOP_MNT}
 
-if [ -e "${LOOP_MNT}/alpine-portal-edge-${ARCH}.iso" ] ; then
-	cp "${LOOP_MNT}/alpine-portal-edge-${ARCH}.iso" "portal-${BOARD}.iso"
+if [ -e "${LOOP_MNT}/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
+	cp "${LOOP_MNT}/alpine-portal-edge-${ARCH}.tar.gz" "portal-${BOARD}.tar.gz"
 fi
 
-if [ -e "portal-${BOARD}.iso" ] ; then
+if [ -e "portal-${BOARD}.tar.gz" ] ; then
 	echo "Done"
 	return 0
 else
@@ -260,7 +273,7 @@ fi
 
 
 # The script should clean up after itself
-trap cleanup SIGINT SIGTERM SIGHUP EXIT
+trap cleanup 1 SIGINT SIGTERM EXIT
 
 # Get basic details
 stage_0
@@ -269,21 +282,28 @@ stage_0
 if [ $? == 0 ] ; then
 	stage_1
 else
-	exit 1
+	exit
 fi
 
 # Confirm everything downloaded correctly before building the cross-toolchain
 if [ $? == 0 ] ; then
 	stage_2
 else
-	exit 1
+	exit
 fi
 
 # Confirm the cross-toolchain built right before building the PORTAL image
 if [ $? == 0 ] ; then
 	stage_3
 else
-	exit 1
+	exit
+fi
+
+# Confirm the cross-toolchain built right before building the PORTAL image
+if [ $? == 0 ] ; then
+	stage_4
+else
+	exit
 fi
 
 # Confirm the PORTAL image built correctly
