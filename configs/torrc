@@ -1,4 +1,14 @@
-############################ Tor Client Options ############################
+################################################################################
+##                     ___  ___  ___ _____ _   _                              ##
+##                    | _ \/ _ \| _ \_   _/_\ | | of ._ o                     ##
+##                    |  _/ (_) |   / | |/ _ \| |__  |_)|                     ##
+##                    |_|  \___/|_|_\ |_/_/ \_\____| |                        ##
+##                                                                            ##
+##                       Original Concept by: the grugq                       ##
+##                         Implementation by: Mischif                         ##
+################################################################################
+
+############################## Tor Client Options ##############################
 
 # Map .onion/.exit addresses to addresses in VirtualAddrNetwork range
 AutomapHostsOnResolve 1
@@ -18,7 +28,7 @@ TransProxyType TPROXY
 # Let Tor pick unused network address from this range
 VirtualAddrNetworkIPv4 172.24.0.0/13
 
-########################### General Tor Options ###########################
+############################# General Tor Options #############################
 
 # Since RPis run on flash mem, don't write so much
 AvoidDiskWrites 1
@@ -36,7 +46,7 @@ RunAsDaemon 1
 # Run as "tor" user
 User tor
 
-####################### Security-focused Tor Options #######################
+######################### Security-focused Tor Options #########################
 
 # Prevent Tor-related pages from being swapped out
 # Requires root, use User to drop privs
@@ -52,15 +62,15 @@ DormantCanceledByStartup 1
 NoExec 1
 
 # Reject SOCKS connections that do DNS resolve before connecting
-# SafeSocks 1
+SafeSocks 1
 
 # Currently nonfunctional, as Tor client in Alpine package repo
 # is not built with libseccomp library
 # Run Tor client in a syscall sandbox
 Sandbox 1
 
-##### These options are supposedly superfluous for modern Tor clients, #####
-##### they are included in this torrc for belt-and-suspenders coverage #####
+####### These options are supposedly superfluous for modern Tor clients, #######
+####### they are included in this torrc for belt-and-suspenders coverage #######
 
 # If an external DNS server says a URL maps to an RFC 1918 address,
 # they're lying
@@ -84,13 +94,3 @@ ControlPort 0
 # It should never be necessary to attach a debugger to Tor
 # while it is operating as a PORTAL
 DisableDebuggerAttachment 1
-
-#################### Remove below here for main release ####################
-
-# Don't scrub logs during testing
-Log info file /var/log/tor/main.log
-SafeLogging 0
-
-# Make notice-level log for SOCKS connections that resolve DNS
-# before connecting
-TestSocks 1

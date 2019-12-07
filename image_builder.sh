@@ -1,5 +1,15 @@
 #!/usr/bin/env -S sh -eu
 
+################################################################################
+##                     ___  ___  ___ _____ _   _                              ##
+##                    | _ \/ _ \| _ \_   _/_\ | | of ._ o                     ##
+##                    |  _/ (_) |   / | |/ _ \| |__  |_)|                     ##
+##                    |_|  \___/|_|_\ |_/_/ \_\____| |                        ##
+##                                                                            ##
+##                       Original Concept by: the grugq                       ##
+##                         Implementation by: Mischif                         ##
+################################################################################
+
 ARCH=
 BOARD=
 
@@ -7,7 +17,16 @@ configure_system () {
 	if [ -d "/home/build" ] ; then return 0; fi
 
 	mount -o remount,rw /media/sda1
-	setup-interfaces
+
+	setup-interfaces -i <<EOF
+auto lo
+auto eth0
+
+iface lo inet loopback
+iface eth0 inet dhcp
+	hostname portalbuilder
+EOF
+
 	ifup eth0
 
 	echo "Preparing repositories"
@@ -39,6 +58,7 @@ if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then return 0; fi
 	fi
 
 su -l build -c "cd /media/sda1/aports/scripts && BOARD=${BOARD} ./mkimage.sh \
+	--arch ${ARCH} \
 	--tag edge \
 	--profile portal \
 	--outdir /media/sda1 \

@@ -1,47 +1,56 @@
+################################################################################
+##                     ___  ___  ___ _____ _   _                              ##
+##                    | _ \/ _ \| _ \_   _/_\ | | of ._ o                     ##
+##                    |  _/ (_) |   / | |/ _ \| |__  |_)|                     ##
+##                    |_|  \___/|_|_\ |_/_/ \_\____| |                        ##
+##                                                                            ##
+##                       Original Concept by: the grugq                       ##
+##                         Implementation by: Mischif                         ##
+################################################################################
+
 portal_gen_cmdline() {
 	echo "modules=loop,squashfs,sd-mod,usb-storage quiet ${kernel_cmdline}"
 }
 
 portal_gen_config() {
-
-	case "${BOARD}" in
-	RPI1 )
-		cat <<-RPI1
+	case "${ARCH}" in
+	armhf )
+		cat <<-ARMHF
 			initramfs boot/initramfs-rpi
 			kernel=boot/vmlinuz-rpi
 			include usercfg.txt
-			RPI1
+			ARMHF
 		;;
 
-	RPI2 )
-		cat <<-RPI2
+	armv7 )
+		cat <<-ARMV7
 			initramfs boot/initramfs-rpi2
 			kernel=boot/vmlinuz-rpi2
 			include usercfg.txt
-			RPI2
+			ARMV7
 		;;
 
-	# Using RPi4 initramfs/kernel b/c nftables kernel modules
-	# are solely missing from aarch64 package of linux-rpi;
-	# they're available in armhf/armv7 versions of package,
-	# as well as aarch64 package of linux-rpi4
-	RPI3 )
-		cat <<-RPI3
-			arm_control=0x200
+	# Using RPi4 initramfs/kernel for all boards b/c nftables kernel
+	# modules are solely missing from aarch64 package of linux-rpi;
+	# they're available in armhf/armv7 versions of package, as well
+	# as aarch64 package of linux-rpi4
+	aarch64 )
+		if [ ${BOARD} == "rpi2" -o ${BOARD} == "rpi3" ] ; then
+			cat <<-RPI23
+				arm_control=0x200
+				RPI23
+		else
+			cat <<-RPI4
+				arm_64bit=1
+				enable_gic=1
+				RPI4
+		fi
+
+		cat <<-AARCH64
 			initramfs boot/initramfs-rpi4
 			kernel=boot/vmlinuz-rpi4
 			include usercfg.txt
-			RPI3
-		;;
-
-	RPI4 )
-		cat <<-RPI4
-			arm_64bit=1
-			enable_gic=1
-			initramfs boot/initramfs-rpi4
-			kernel=boot/vmlinuz-rpi4
-			include usercfg.txt
-			RPI4
+			AARCH64
 		;;
 	esac
 }
@@ -79,23 +88,18 @@ profile_portal() {
 	image_ext="tar.gz"
 	initfs_features="base squashfs mmc usb kms dhcp https"
 	kernel_cmdline="console=ttyAMA0,115200"
-	case "${BOARD}" in
-	RPI1 )
+	case "${ARCH}" in
+	armhf )
 		arch="armhf"
 		kernel_flavors="rpi"
 		;;
 
-	RPI2 )
+	armv7 )
 		arch="armv7"
 		kernel_flavors="rpi2"
 		;;
 
-	RPI3 )
-		arch="aarch64"
-		kernel_flavors="rpi4"
-		;;
-
-	RPI4 )
+	aarch64 )
 		arch="aarch64"
 		kernel_flavors="rpi4"
 		;;

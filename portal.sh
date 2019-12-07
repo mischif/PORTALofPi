@@ -33,58 +33,74 @@ QEMU_EMULATOR=""
 TARBALL=""
 
 cleanup() {
+	set +e
+
 	if [ -d ${LOOP_MNT} ] ; then
-		umount -q ${LOOP_MNT}
-		losetup -d /dev/loop1
+		umount -qd ${LOOP_MNT}
+		rm -rf ${LOOP_MNT}
 	fi
 
 	rm -rf ${SQUASH_TMP}
 	rm -rf ${INITRAM_TMP}
-	rm -rf ${LOOP_MNT}
 	rm -f "${PORTALDIR}/initramfs-vanilla-orig"
+	rm -f "${PORTALDIR}/${BOARD}_stage_3_success"
 	rm -f "${PORTALDIR}/${BOARD}_system.img"
 
-if [ -e "portal-${BOARD}.tar.gz" ] ; then
-	rm -rf "${PORTALDIR}/aports"
-	rm -f "${PORTALDIR}/u-boot.bin"
-	rm -f "${PORTALDIR}/${TARBALL}"
-fi
+	if [ -e "portal-${BOARD}.tar.gz" ] ; then
+		rm -rf "${PORTALDIR}/aports"
+		rm -f "${PORTALDIR}/u-boot.bin"
+		rm -f "${PORTALDIR}/${TARBALL}"
+		rm -f "${PORTALDIR}/${BOARD}_stage_2_success"
+	fi
+
 }
 
 stage_0() {
 ################################################################################
 ##                                                                            ##
-##                    Which architecture should get built?                    ##
+##                 Which board is being turned into a PORTAL?                 ##
 ##                                                                            ##
 ################################################################################
 
 echo "Supported boards:"
-echo "1) Raspberry Pi 1		2) Raspberry Pi Zero W"
-echo "3) Raspberry Pi 2		4) Raspberry Pi 3"
-echo "5) Raspberry Pi 4"
+echo "1) Raspberry Pi Zero W	2) Raspberry Pi 1"
+echo "3) Raspberry Pi 2			4) Raspberry Pi 2 V1.2"
+echo "5) Raspberry Pi 3			6) Raspberry Pi 4"
 while true; do
-	read -p "Build PORTALofPi for which board [1-5]? " MODEL
+	read -p "Build PORTALofPi for which board [1-6]? " MODEL
 	case ${MODEL} in
 		1 )	ARCH="armhf"
-			BOARD="RPI1"
-			break;;
+			BOARD="rpi0w"
+			break
+			;;
 
 		2 )	ARCH="armhf"
-			BOARD="RPI0W"
-			break;;
+			BOARD="rpi1"
+			break
+			;;
 
 		3 )	ARCH="armv7"
-			BOARD="RPI2"
-			break;;
+			BOARD="rpi2"
+			break
+			;;
 
 		4 )	ARCH="aarch64"
-			BOARD="RPI3"
-			break;;
+			BOARD="rpi2"
+			break
+			;;
 
 		5 )	ARCH="aarch64"
-			BOARD="RPI4"
-			break;;
-		*) echo "Please choose a supported model"
+			BOARD="rpi3"
+			break
+			;;
+
+		6 )	ARCH="aarch64"
+			BOARD="rpi4"
+			break
+			;;
+
+		* ) echo "Please choose a supported model"
+			;;
 	esac
 done
 
@@ -97,6 +113,12 @@ fi
 }
 
 stage_1() {
+################################################################################
+##                                                                            ##
+##                           Set assorted constants                           ##
+##                                                                            ##
+################################################################################
+
 	if [ ${ARCH} == "aarch64" ] ; then
 		QEMU_EMULATOR="aarch64"
 	else
@@ -119,7 +141,7 @@ stage_1() {
 stage_2() {
 ################################################################################
 ##                                                                            ##
-##            Stage 2: Collect all files necessary to build PORTAL            ##
+##                Collect files and tools to run image builder                ##
 ##                                                                            ##
 ################################################################################
 
@@ -146,8 +168,14 @@ fi
 if [ -e "${PORTALDIR}/u-boot.bin" ] ; then
 	echo "U-Boot already extracted; skipping"
 else
+	if [ ${ARCH} == "aarch64" ] ; then
+		local UBOOT_DIR="./u-boot/qemu_arm64"
+	else
+		local UBOOT_DIR="./u-boot/qemu_arm"
+	fi
+	
 	echo "Extracting U-Boot from tarball"
-	tar --strip-components=3 -xzf "${PORTALDIR}/${TARBALL}" ./u-boot/qemu_arm64/u-boot.bin -C ${PORTALDIR}
+	tar --strip-components=3  -C ${PORTALDIR} -xzf "${PORTALDIR}/${TARBALL}" "${UBOOT_DIR}/u-boot.bin"
 fi
 
 if [ $? == 0 ] ; then
@@ -162,7 +190,7 @@ fi
 stage_3() {
 ################################################################################
 ##                                                                            ##
-##                    Stage 2: Compile the cross-toolchain                    ##
+##                       Create image for image builder                       ##
 ##                                                                            ##
 ################################################################################
 
@@ -217,8 +245,7 @@ else
 
 	# Clean up
 	sync
-	umount ${LOOP_MNT}
-	losetup -d /dev/loop1
+	umount -d ${LOOP_MNT}
 fi
 
 if [ $? == 0 ] ; then
@@ -233,18 +260,26 @@ fi
 stage_4() {
 ################################################################################
 ##                                                                            ##
-##                  Stage 3: Begin building the PORTAL image                  ##
+##            Boot image builder and collect finished PORTAL image            ##
 ##                                                                            ##
 ################################################################################
 
 if [ -e "portal-${BOARD}.tar.gz" ] ; then return 0; fi
+
+local MACH_CPU=""
+
+if [ ${ARCH} == "aarch64" ] ; then
+	MACH_CPU="cortex-a72"
+else
+	MACH_CPU="cortex-a15"
+fi
 
 echo "Booting image builder"
 
 qemu-system-${QEMU_EMULATOR} \
 	-nographic \
 	-machine virt \
-	-cpu cortex-a57 \
+	-cpu ${MACH_CPU} \
 	-machine accel=tcg \
 	-m 2048 \
 	-bios "${PORTALDIR}/u-boot.bin" \
@@ -278,28 +313,28 @@ trap cleanup 1 SIGINT SIGTERM EXIT
 # Get basic details
 stage_0
 
-# Make sure everything was confirmed before we begin downloads
+# Set additional constants based on basic details
 if [ $? == 0 ] ; then
 	stage_1
 else
 	exit
 fi
 
-# Confirm everything downloaded correctly before building the cross-toolchain
+# Download everything outside the image builder
 if [ $? == 0 ] ; then
 	stage_2
 else
 	exit
 fi
 
-# Confirm the cross-toolchain built right before building the PORTAL image
+# Prep the image builder image
 if [ $? == 0 ] ; then
 	stage_3
 else
 	exit
 fi
 
-# Confirm the cross-toolchain built right before building the PORTAL image
+# Boot the image builder and build the PORTAL image
 if [ $? == 0 ] ; then
 	stage_4
 else
