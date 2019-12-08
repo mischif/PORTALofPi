@@ -12,12 +12,13 @@
 
 ARCH=
 BOARD=
+TOOLS=
 
 configure_system () {
 	if [ -d "/home/build" ] ; then return 0; fi
 
-	mount -o remount,rw /media/sda1
-	chmod +x /media/sda1/*.sh
+	mount -o remount,rw ${TOOLS}
+	chmod +x ${TOOLS}/*.sh
 
 	setup-interfaces -i <<EOF
 auto lo
@@ -49,7 +50,7 @@ EOF
 	}
 
 build_image () {
-	if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then return 0; fi
+	if [ -e "${TOOLS}/alpine-portal-edge-${ARCH}.tar.gz" ] ; then return 0; fi
 
 		if [ -d "/home/build/.abuild" ] ; then
 			echo "Signing keys already created; skipping"
@@ -58,15 +59,15 @@ build_image () {
 			su -l build -c "abuild-keygen -i -a -n"
 		fi
 
-	su -l build -c "cd /media/sda1/aports/scripts && BOARD=${BOARD} ./mkimage.sh \
+	su -l build -c "cd ${TOOLS}/aports/scripts && BOARD=${BOARD} ./mkimage.sh \
 		--arch ${ARCH} \
 		--tag edge \
 		--profile portal \
-		--outdir /media/sda1 \
+		--outdir ${TOOLS} \
 		--repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
 		--extra-repository http://dl-cdn.alpinelinux.org/alpine/edge/community"
 
-	if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
+	if [ -e "${TOOLS}/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
 		echo "Build complete; exiting image builder"
 	else
 		echo "There was an issue building the image; exiting image builder"

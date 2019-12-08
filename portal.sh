@@ -30,6 +30,7 @@ BOARD=""
 LATEST_VERSION=""
 MODEL=0
 QEMU_EMULATOR=""
+IMAGE_TOOLS=""
 TARBALL=""
 
 cleanup() {
@@ -127,8 +128,10 @@ stage_1() {
 
 	if [ ${ARCH} == "aarch64" ] ; then
 		QEMU_EMULATOR="aarch64"
+		IMAGE_TOOLS="/media/sda1"
 	else
 		QEMU_EMULATOR="arm"
+		IMAGE_TOOLS="media/mmcblk0p1"
 	fi
 
 	mkdir ${LOOP_MNT}
@@ -235,7 +238,7 @@ stage_3() {
 		local KERNEL_VERSION=$(ls -1 ${SQUASH_TMP}/modules/ | grep '^[0-9]' | sort -rn | head -n 1)
 		local SQUASH_DRIVERS="${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers"
 		local INITRD_DRIVERS="${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers"
-		
+
 		cp ${SQUASH_DRIVERS}/ata/ahci.ko ${INITRD_DRIVERS}/ata/
 		cp ${SQUASH_DRIVERS}/ata/libahci* ${INITRD_DRIVERS}/ata/
 
@@ -246,8 +249,16 @@ stage_3() {
 		cp -r "${PORTALDIR}/configs" ${LOOP_MNT}
 		cp -r "${PORTALDIR}/aports" ${LOOP_MNT}
 		cp "${PORTALDIR}/mkimg.portal.sh" "${LOOP_MNT}/aports/scripts"
-		cp "${PORTALDIR}/genapkovl-portal.sh" "${LOOP_MNT}/aports/scripts"
-		cat "${PORTALDIR}/image_builder.sh" | sed -e "s|^ARCH=|ARCH=${ARCH}|" | sed -e "s|^BOARD=|BOARD=${BOARD}|" > "${LOOP_MNT}/image_builder.sh"
+
+		cat "${PORTALDIR}/genapkovl-portal.sh" \
+			| sed -e "s|^CONFIGS=|CONFIGS=\"${IMAGE_TOOLS}/configs\"|" \
+			> "${LOOP_MNT}/aports/scripts/genapkovl-portal.sh"
+
+		cat "${PORTALDIR}/image_builder.sh" \
+			| sed -e "s|^ARCH=|ARCH=${ARCH}|" \
+			| sed -e "s|^BOARD=|BOARD=${BOARD}|" \
+			| sed -e "s|^TOOLS=|TOOLS=\"${IMAGE_TOOLS}\"|" \
+			> "${LOOP_MNT}/image_builder.sh"
 
 		# Clean up
 		sync

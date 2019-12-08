@@ -10,7 +10,7 @@
 ##                         Implementation by: Mischif                         ##
 ################################################################################
 
-CONFIGS_DIR="/media/sda1/configs"
+CONFIGS=
 tmp="$(mktemp -d)"
 
 HOSTNAME="$1"
@@ -44,28 +44,28 @@ makefile root:root 0644 "$tmp"/etc/hostname <<EOF
 $HOSTNAME
 EOF
 
-cat "${CONFIGS_DIR}/dnsmasq.conf" | makefile root:root 0644 "$tmp"/etc/dnsmasq.conf
+cat "${CONFIGS}/dnsmasq.conf" | makefile root:root 0644 "$tmp"/etc/dnsmasq.conf
 
-cat "${CONFIGS_DIR}/firewall.nft" | makefile root:root 0644 "$tmp"/etc/firewall.nft
+cat "${CONFIGS}/firewall.nft" | makefile root:root 0644 "$tmp"/etc/firewall.nft
 
 mkdir -p "$tmp"/etc/apk
-cat "${CONFIGS_DIR}/portal-world.conf" | makefile root:root 0644 "$tmp"/etc/apk/world
+cat "${CONFIGS}/portal-world.conf" | makefile root:root 0644 "$tmp"/etc/apk/world
 
 mkdir -p "$tmp"/etc/conf.d
-cat "${CONFIGS_DIR}/nftables.conf" | makefile root:root 0644 "$tmp"/etc/conf.d/nftables
+cat "${CONFIGS}/nftables.conf" | makefile root:root 0644 "$tmp"/etc/conf.d/nftables
 
 mkdir -p "$tmp"/etc/network
-cat "${CONFIGS_DIR}/interfaces.conf" | makefile root:root 0644 "$tmp"/etc/network/interfaces
+cat "${CONFIGS}/interfaces.conf" | makefile root:root 0644 "$tmp"/etc/network/interfaces
 
 mkdir -p "$tmp"/etc/sysctl.d
-cat "${CONFIGS_DIR}/sysctl.conf" | makefile root:root 0644 "$tmp"/etc/sysctl.d/01-portal.conf
+cat "${CONFIGS}/sysctl.conf" | makefile root:root 0644 "$tmp"/etc/sysctl.d/01-portal.conf
 
 mkdir -p "$tmp"/etc/tor
-cat "${CONFIGS_DIR}/torrc" | makefile root:root 0644 "$tmp"/etc/tor/torrc
+cat "${CONFIGS}/torrc" | makefile root:root 0644 "$tmp"/etc/tor/torrc
 
-if [ -e "${CONFIGS_DIR}/wireless.conf" ] ; then
+if [ -e "${CONFIGS}/wireless.conf" ] ; then
 	mkdir -p "$tmp"/etc/wpa_supplicant
-	cat "${CONFIGS_DIR}/wireless.conf" | makefile root:root 0644 "$tmp"/etc/wpa_supplicant/wpa_supplicant.conf
+	cat "${CONFIGS}/wireless.conf" | makefile root:root 0644 "$tmp"/etc/wpa_supplicant/wpa_supplicant.conf
 	rc_add wpa_supplicant boot
 fi
 
