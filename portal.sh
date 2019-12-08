@@ -237,10 +237,6 @@ stage_3() {
 		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/ahci.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
 		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/libahci* ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
 
-		mkdir -p ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/char/hw_random/
-		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/rng-core.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/
-		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/virtio-rng.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/
-
 		depmod -b ${INITRAM_TMP} -F ${SQUASH_TMP}/modules/${KERNEL_VERSION}/modules.symbols ${KERNEL_VERSION}
 		( cd ${INITRAM_TMP} && find . | cpio -H newc -o | gzip -9 > ../mnt/boot/initramfs-vanilla )
 
