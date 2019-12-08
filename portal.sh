@@ -233,9 +233,11 @@ stage_3() {
 		unsquashfs -q -d ${SQUASH_TMP} "${LOOP_MNT}/boot/modloop-vanilla"
 		# Get kernel version; a bit overkill but it doesn't hurt to protect against multiple version in tarball
 		local KERNEL_VERSION=$(ls -1 ${SQUASH_TMP}/modules/ | grep '^[0-9]' | sort -rn | head -n 1)
-
-		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/ahci.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
-		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/libahci* ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
+		local SQUASH_DRIVERS="${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers"
+		local INITRD_DRIVERS="${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers"
+		
+		cp ${SQUASH_DRIVERS}/ata/ahci.ko ${INITRD_DRIVERS}/ata/
+		cp ${SQUASH_DRIVERS}/ata/libahci* ${INITRD_DRIVERS}/ata/
 
 		depmod -b ${INITRAM_TMP} -F ${SQUASH_TMP}/modules/${KERNEL_VERSION}/modules.symbols ${KERNEL_VERSION}
 		( cd ${INITRAM_TMP} && find . | cpio -H newc -o | gzip -9 > ../mnt/boot/initramfs-vanilla )
