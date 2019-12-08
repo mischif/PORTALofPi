@@ -48,7 +48,7 @@ cleanup() {
 
 	if [ -e "portal-${BOARD}.tar.gz" ] ; then
 		rm -rf "${PORTALDIR}/aports"
-		rm -f "${PORTALDIR}/u-boot.bin"
+		rm -f "${PORTALDIR}/u-boot-${ARCH}.bin"
 		rm -f "${PORTALDIR}/${TARBALL}"
 		rm -f "${PORTALDIR}/${BOARD}_stage_2_success"
 	fi
@@ -172,7 +172,7 @@ stage_2() {
 		wget -P ${PORTALDIR} "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/${TARBALL}"
 	fi
 
-	if [ -e "${PORTALDIR}/u-boot.bin" ] ; then
+	if [ -e "${PORTALDIR}/u-boot-${ARCH}.bin" ] ; then
 		echo "U-Boot already extracted; skipping"
 	else
 		if [ ${ARCH} == "aarch64" ] ; then
@@ -183,6 +183,7 @@ stage_2() {
 
 		echo "Extracting U-Boot from tarball"
 		tar --strip-components=3  -C ${PORTALDIR} -xzf "${PORTALDIR}/${TARBALL}" "${UBOOT_DIR}/u-boot.bin"
+		mv "${PORTALDIR}/u-boot.bin" "${PORTALDIR}/u-boot-${ARCH}.bin"
 	fi
 
 	if [ $? == 0 ] ; then
@@ -289,7 +290,7 @@ stage_4() {
 		-cpu ${MACH_CPU} \
 		-machine accel=tcg \
 		-m 2048 \
-		-bios "${PORTALDIR}/u-boot.bin" \
+		-bios "${PORTALDIR}/u-boot-${ARCH}.bin" \
 		-rtc base=utc,clock=host \
 		-drive if=none,file="${PORTALDIR}/${BOARD}_system.img",id=inst-disk \
 		-device ich9-ahci,id=ahci \
