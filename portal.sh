@@ -127,7 +127,7 @@ stage_1() {
 
 	mkdir ${LOOP_MNT}
 
-	LATEST_VERSION=$(curl -s "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/" | sed -n "s|.*>alpine-uboot-\([0-9\.]*\)-${ARCH}.tar.gz<.*|\1|p" | sort -rn | head -n 1)
+	LATEST_VERSION=$(wget -q -O - "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/" | sed -n "s|.*>alpine-uboot-\([0-9\.]*\)-${ARCH}.tar.gz<.*|\1|p" | sort -rn | head -n 1)
 	TARBALL="alpine-uboot-${LATEST_VERSION}-${ARCH}.tar.gz"
 
 	if [ -d ${LOOP_MNT} -a ${LATEST_VERSION} != "" ] ; then
@@ -147,14 +147,15 @@ stage_2() {
 
 if [ -e "${PORTALDIR}/${BOARD}_stage_2_success" ] ; then return 0; fi
 
-apk add squashfs-tools sudo util-linux coreutils qemu-img parted qemu-system-${QEMU_EMULATOR}
+echo "Installing image builder packages"
+apk -q add squashfs-tools git util-linux coreutils qemu-img parted qemu-system-${QEMU_EMULATOR}
 
 
 if [ -d "${PORTALDIR}/aports" ] ; then
 	echo "aports already downloaded; skipping"
 else
 	echo "Downloading aports"
-	git clone --depth 1 --single-branch -b master git://github.com/alpinelinux/aports "${PORTALDIR}/aports"
+	git clone -q --depth 1 --single-branch -b master git://github.com/alpinelinux/aports "${PORTALDIR}/aports"
 fi
 
 if [ -e "${PORTALDIR}/${TARBALL}" ] ; then
@@ -200,7 +201,7 @@ if [ -e "${PORTALDIR}/${BOARD}_system.img" ] ; then
 	echo "${BOARD} system image already exists; skipping"
 else
 	echo "Creating ${BOARD} system image"
-	qemu-img create "${PORTALDIR}/${BOARD}_system.img" 384M
+	qemu-img create -q "${PORTALDIR}/${BOARD}_system.img" 384M
 
 	echo "Partitioning ${BOARD} system image"
 	parted -s "${PORTALDIR}/${BOARD}_system.img" mktable msdos
@@ -222,7 +223,7 @@ else
 	mkdir ${INITRAM_TMP}
 	( cd ${INITRAM_TMP} && gunzip -c ../initramfs-vanilla-orig  | cpio -i )
 
-	unsquashfs -d ${SQUASH_TMP} "${LOOP_MNT}/boot/modloop-vanilla"
+	unsquashfs -q -d ${SQUASH_TMP} "${LOOP_MNT}/boot/modloop-vanilla"
 	# Get kernel version; a bit overkill but it doesn't hurt to protect against multiple version in tarball
 	local KERNEL_VERSION=$(ls -1 ${SQUASH_TMP}/modules/ | grep '^[0-9]' | sort -rn | head -n 1)
 

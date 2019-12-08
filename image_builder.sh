@@ -17,6 +17,7 @@ configure_system () {
 	if [ -d "/home/build" ] ; then return 0; fi
 
 	mount -o remount,rw /media/sda1
+	chmod +x /media/sda1/*.sh
 
 	setup-interfaces -i <<EOF
 auto lo
