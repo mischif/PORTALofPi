@@ -31,10 +31,10 @@ EOF
 	ifup eth0
 
 	echo "Preparing repositories"
-	cat > /etc/apk/repositories <<EOF
-http://dl-cdn.alpinelinux.org/alpine/edge/main
-http://dl-cdn.alpinelinux.org/alpine/edge/community
-EOF
+	cat > /etc/apk/repositories <<-EOF
+		http://dl-cdn.alpinelinux.org/alpine/edge/main
+		http://dl-cdn.alpinelinux.org/alpine/edge/community
+		EOF
 
 	apk update
 	apk upgrade
@@ -46,32 +46,32 @@ EOF
 	adduser --disabled-password -G abuild build
 	addgroup build wheel
 	sed -ie 's|# %wheel ALL=(ALL) N|%wheel ALL=(ALL) N|' /etc/sudoers
-}
+	}
 
 build_image () {
-if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then return 0; fi
+	if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then return 0; fi
 
-	if [ -d "/home/build/.abuild" ] ; then
-		echo "Signing keys already created; skipping"
+		if [ -d "/home/build/.abuild" ] ; then
+			echo "Signing keys already created; skipping"
+		else
+			echo "Creating signing keys"
+			su -l build -c "abuild-keygen -i -a -n"
+		fi
+
+	su -l build -c "cd /media/sda1/aports/scripts && BOARD=${BOARD} ./mkimage.sh \
+		--arch ${ARCH} \
+		--tag edge \
+		--profile portal \
+		--outdir /media/sda1 \
+		--repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
+		--extra-repository http://dl-cdn.alpinelinux.org/alpine/edge/community"
+
+	if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
+		echo "Build complete; exiting image builder"
 	else
-		echo "Creating signing keys"
-		su -l build -c "abuild-keygen -i -a -n"
+		echo "There was an issue building the image; exiting image builder"
 	fi
-
-su -l build -c "cd /media/sda1/aports/scripts && BOARD=${BOARD} ./mkimage.sh \
-	--arch ${ARCH} \
-	--tag edge \
-	--profile portal \
-	--outdir /media/sda1 \
-	--repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
-	--extra-repository http://dl-cdn.alpinelinux.org/alpine/edge/community"
-
-if [ -e "/media/sda1/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
-	echo "Build complete; exiting image builder"
-else
-	echo "There was an issue building the image; exiting image builder"
-fi
-}
+	}
 
 configure_system
 build_image

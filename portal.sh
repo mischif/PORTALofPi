@@ -52,8 +52,7 @@ cleanup() {
 		rm -f "${PORTALDIR}/${TARBALL}"
 		rm -f "${PORTALDIR}/${BOARD}_stage_2_success"
 	fi
-
-}
+	}
 
 stage_0() {
 ################################################################################
@@ -62,55 +61,62 @@ stage_0() {
 ##                                                                            ##
 ################################################################################
 
-echo "Supported boards:"
-echo "1) Raspberry Pi Zero W	2) Raspberry Pi 1"
-echo "3) Raspberry Pi 2			4) Raspberry Pi 2 V1.2"
-echo "5) Raspberry Pi 3			6) Raspberry Pi 4"
-while true; do
-	read -p "Build PORTALofPi for which board [1-6]? " MODEL
-	case ${MODEL} in
-		1 )	ARCH="armhf"
-			BOARD="rpi0w"
-			break
-			;;
+	echo "Supported boards:"
+	echo "1) Raspberry Pi Zero W	2) Raspberry Pi 1"
+	echo "3) Raspberry Pi 2		4) Raspberry Pi 2 V1.2"
+	echo "5) Raspberry Pi 3		6) Raspberry Pi 4"
+	while true; do
+		read -p "Build PORTALofPi for which board [1-6]? " MODEL
+		case ${MODEL} in
+			1 )
+				ARCH="armhf"
+				BOARD="rpi0w"
+				break
+				;;
 
-		2 )	ARCH="armhf"
-			BOARD="rpi1"
-			break
-			;;
+			2 )
+				ARCH="armhf"
+				BOARD="rpi1"
+				break
+				;;
 
-		3 )	ARCH="armv7"
-			BOARD="rpi2"
-			break
-			;;
+			3 )
+				ARCH="armv7"
+				BOARD="rpi2"
+				break
+				;;
 
-		4 )	ARCH="aarch64"
-			BOARD="rpi2"
-			break
-			;;
+			4 )
+				ARCH="aarch64"
+				BOARD="rpi2"
+				break
+				;;
 
-		5 )	ARCH="aarch64"
-			BOARD="rpi3"
-			break
-			;;
+			5 )
+				ARCH="aarch64"
+				BOARD="rpi3"
+				break
+				;;
 
-		6 )	ARCH="aarch64"
-			BOARD="rpi4"
-			break
-			;;
+			6 )
+				ARCH="aarch64"
+				BOARD="rpi4"
+				break
+				;;
 
-		* ) echo "Please choose a supported model"
-			;;
-	esac
-done
+			* )
+				echo "Please choose a supported model"
+				;;
+		esac
+	done
 
-if [ ${ARCH} != "" -a ${BOARD} != "" ] ; then
-	return 0
-else
-	echo "There was an issue getting the configuration"
-	return 1
-fi
-}
+	if [ ${ARCH} != "" -a ${BOARD} != "" ] ; then
+		return 0
+	else
+		echo "There was an issue getting the configuration"
+		return 1
+	fi
+	}
 
 stage_1() {
 ################################################################################
@@ -136,7 +142,7 @@ stage_1() {
 		echo "There was an issue setting constants"
 		return 1
 	fi
-}
+	}
 
 stage_2() {
 ################################################################################
@@ -145,48 +151,48 @@ stage_2() {
 ##                                                                            ##
 ################################################################################
 
-if [ -e "${PORTALDIR}/${BOARD}_stage_2_success" ] ; then return 0; fi
+	if [ -e "${PORTALDIR}/${BOARD}_stage_2_success" ] ; then return 0; fi
 
-echo "Installing image builder packages"
-apk -q add squashfs-tools git util-linux coreutils qemu-img parted qemu-system-${QEMU_EMULATOR}
+	echo "Installing image builder packages"
+	apk -q add squashfs-tools git util-linux coreutils qemu-img parted qemu-system-${QEMU_EMULATOR}
 
 
-if [ -d "${PORTALDIR}/aports" ] ; then
-	echo "aports already downloaded; skipping"
-else
-	echo "Downloading aports"
-	git clone -q --depth 1 --single-branch -b master git://github.com/alpinelinux/aports "${PORTALDIR}/aports"
-fi
-
-if [ -e "${PORTALDIR}/${TARBALL}" ] ; then
-	echo "Tarball already downloaded; skipping"
-
-else
-	echo "Downloading ${ARCH} tarball"
-	wget -P ${PORTALDIR} "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/${TARBALL}"
-fi
-
-if [ -e "${PORTALDIR}/u-boot.bin" ] ; then
-	echo "U-Boot already extracted; skipping"
-else
-	if [ ${ARCH} == "aarch64" ] ; then
-		local UBOOT_DIR="./u-boot/qemu_arm64"
+	if [ -d "${PORTALDIR}/aports" ] ; then
+		echo "aports already downloaded; skipping"
 	else
-		local UBOOT_DIR="./u-boot/qemu_arm"
+		echo "Downloading aports"
+		git clone -q --depth 1 --single-branch -b master git://github.com/alpinelinux/aports "${PORTALDIR}/aports"
 	fi
-	
-	echo "Extracting U-Boot from tarball"
-	tar --strip-components=3  -C ${PORTALDIR} -xzf "${PORTALDIR}/${TARBALL}" "${UBOOT_DIR}/u-boot.bin"
-fi
 
-if [ $? == 0 ] ; then
-	touch "${PORTALDIR}/${BOARD}_stage_2_success"
-	return 0
-else
-	echo "There was an issue downloading the necessary packages"
-	return 1
-fi
-}
+	if [ -e "${PORTALDIR}/${TARBALL}" ] ; then
+		echo "Tarball already downloaded; skipping"
+
+	else
+		echo "Downloading ${ARCH} tarball"
+		wget -P ${PORTALDIR} "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/${TARBALL}"
+	fi
+
+	if [ -e "${PORTALDIR}/u-boot.bin" ] ; then
+		echo "U-Boot already extracted; skipping"
+	else
+		if [ ${ARCH} == "aarch64" ] ; then
+			local UBOOT_DIR="./u-boot/qemu_arm64"
+		else
+			local UBOOT_DIR="./u-boot/qemu_arm"
+		fi
+
+		echo "Extracting U-Boot from tarball"
+		tar --strip-components=3  -C ${PORTALDIR} -xzf "${PORTALDIR}/${TARBALL}" "${UBOOT_DIR}/u-boot.bin"
+	fi
+
+	if [ $? == 0 ] ; then
+		touch "${PORTALDIR}/${BOARD}_stage_2_success"
+		return 0
+	else
+		echo "There was an issue downloading the necessary packages"
+		return 1
+	fi
+	}
 
 stage_3() {
 ################################################################################
@@ -195,68 +201,68 @@ stage_3() {
 ##                                                                            ##
 ################################################################################
 
-if [ -e "${PORTALDIR}/${BOARD}_stage_3_success" ] ; then return 0; fi
+	if [ -e "${PORTALDIR}/${BOARD}_stage_3_success" ] ; then return 0; fi
 
-if [ -e "${PORTALDIR}/${BOARD}_system.img" ] ; then
-	echo "${BOARD} system image already exists; skipping"
-else
-	echo "Creating ${BOARD} system image"
-	qemu-img create -q "${PORTALDIR}/${BOARD}_system.img" 384M
+	if [ -e "${PORTALDIR}/${BOARD}_system.img" ] ; then
+		echo "${BOARD} system image already exists; skipping"
+	else
+		echo "Creating ${BOARD} system image"
+		qemu-img create -q "${PORTALDIR}/${BOARD}_system.img" 384M
 
-	echo "Partitioning ${BOARD} system image"
-	parted -s "${PORTALDIR}/${BOARD}_system.img" mktable msdos
-	parted -s "${PORTALDIR}/${BOARD}_system.img" unit s -- mkpart primary ext4 2048 -1
+		echo "Partitioning ${BOARD} system image"
+		parted -s "${PORTALDIR}/${BOARD}_system.img" mktable msdos
+		parted -s "${PORTALDIR}/${BOARD}_system.img" unit s -- mkpart primary ext4 2048 -1
 
-	echo "Formatting ${BOARD} system image"
-	losetup -o 1048576 /dev/loop1 "${PORTALDIR}/${BOARD}_system.img"
-	mkfs.ext4 -L install /dev/loop1
+		echo "Formatting ${BOARD} system image"
+		losetup -o 1048576 /dev/loop1 "${PORTALDIR}/${BOARD}_system.img"
+		mkfs.ext4 -L install /dev/loop1
 
-	echo "Preparing tarball for qemu boot"
-	mount /dev/loop1 ${LOOP_MNT}
-	tar -xzf "${PORTALDIR}/${TARBALL}" -C ${LOOP_MNT}
+		echo "Preparing tarball for qemu boot"
+		mount /dev/loop1 ${LOOP_MNT}
+		tar -xzf "${PORTALDIR}/${TARBALL}" -C ${LOOP_MNT}
 
-	# Extlinux fixes
-	sed -ie 's|APPEND modules=.*|APPEND modules=loop,squashfs,usb-storage,ahci,sd_mod,scsi_mod,ext4,ahci console=ttyAMA0 console=tty1|' "${LOOP_MNT}/extlinux/extlinux.conf"
+		# Extlinux fixes
+		sed -ie 's|APPEND modules=.*|APPEND modules=loop,squashfs,usb-storage,ahci,sd_mod,scsi_mod,ext4,ahci console=ttyAMA0 console=tty1|' "${LOOP_MNT}/extlinux/extlinux.conf"
 
-	# Initramfs tweaks
-	cp "${LOOP_MNT}/boot/initramfs-vanilla" "${PORTALDIR}/initramfs-vanilla-orig"
-	mkdir ${INITRAM_TMP}
-	( cd ${INITRAM_TMP} && gunzip -c ../initramfs-vanilla-orig  | cpio -i )
+		# Initramfs tweaks
+		cp "${LOOP_MNT}/boot/initramfs-vanilla" "${PORTALDIR}/initramfs-vanilla-orig"
+		mkdir ${INITRAM_TMP}
+		( cd ${INITRAM_TMP} && gunzip -c ../initramfs-vanilla-orig  | cpio -i )
 
-	unsquashfs -q -d ${SQUASH_TMP} "${LOOP_MNT}/boot/modloop-vanilla"
-	# Get kernel version; a bit overkill but it doesn't hurt to protect against multiple version in tarball
-	local KERNEL_VERSION=$(ls -1 ${SQUASH_TMP}/modules/ | grep '^[0-9]' | sort -rn | head -n 1)
+		unsquashfs -q -d ${SQUASH_TMP} "${LOOP_MNT}/boot/modloop-vanilla"
+		# Get kernel version; a bit overkill but it doesn't hurt to protect against multiple version in tarball
+		local KERNEL_VERSION=$(ls -1 ${SQUASH_TMP}/modules/ | grep '^[0-9]' | sort -rn | head -n 1)
 
-	cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/ahci.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
-	cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/libahci* ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
+		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/ahci.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
+		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/ata/libahci* ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/ata/
 
-	mkdir -p ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/char/hw_random/
-	cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/rng-core.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/
-	cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/virtio-rng.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/
+		mkdir -p ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/char/hw_random/
+		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/rng-core.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/
+		cp ${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/virtio-rng.ko ${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers/char/hw_random/
 
-	depmod -b ${INITRAM_TMP} -F ${SQUASH_TMP}/modules/${KERNEL_VERSION}/modules.symbols ${KERNEL_VERSION}
-	( cd ${INITRAM_TMP} && find . | cpio -H newc -o | gzip -9 > ../mnt/boot/initramfs-vanilla )
+		depmod -b ${INITRAM_TMP} -F ${SQUASH_TMP}/modules/${KERNEL_VERSION}/modules.symbols ${KERNEL_VERSION}
+		( cd ${INITRAM_TMP} && find . | cpio -H newc -o | gzip -9 > ../mnt/boot/initramfs-vanilla )
 
-	echo "Copying tools to ${BOARD} system image"
-	cp -r "${PORTALDIR}/configs" ${LOOP_MNT}
-	cp -r "${PORTALDIR}/aports" ${LOOP_MNT}
-	cp "${PORTALDIR}/mkimg.portal.sh" "${LOOP_MNT}/aports/scripts"
-	cp "${PORTALDIR}/genapkovl-portal.sh" "${LOOP_MNT}/aports/scripts"
-	cat "${PORTALDIR}/image_builder.sh" | sed -e "s|^ARCH=|ARCH=${ARCH}|" | sed -e "s|^BOARD=|BOARD=${BOARD}|" > "${LOOP_MNT}/image_builder.sh"
+		echo "Copying tools to ${BOARD} system image"
+		cp -r "${PORTALDIR}/configs" ${LOOP_MNT}
+		cp -r "${PORTALDIR}/aports" ${LOOP_MNT}
+		cp "${PORTALDIR}/mkimg.portal.sh" "${LOOP_MNT}/aports/scripts"
+		cp "${PORTALDIR}/genapkovl-portal.sh" "${LOOP_MNT}/aports/scripts"
+		cat "${PORTALDIR}/image_builder.sh" | sed -e "s|^ARCH=|ARCH=${ARCH}|" | sed -e "s|^BOARD=|BOARD=${BOARD}|" > "${LOOP_MNT}/image_builder.sh"
 
-	# Clean up
-	sync
-	umount -d ${LOOP_MNT}
-fi
+		# Clean up
+		sync
+		umount -d ${LOOP_MNT}
+	fi
 
-if [ $? == 0 ] ; then
-	touch "${PORTALDIR}/${BOARD}_stage_3_success"
-	return 0
-else
-	echo "There was an issue building the cross-toolchain"
-	return 1
-fi
-}
+	if [ $? == 0 ] ; then
+		touch "${PORTALDIR}/${BOARD}_stage_3_success"
+		return 0
+	else
+		echo "There was an issue building the cross-toolchain"
+		return 1
+	fi
+	}
 
 stage_4() {
 ################################################################################
@@ -265,47 +271,46 @@ stage_4() {
 ##                                                                            ##
 ################################################################################
 
-if [ -e "portal-${BOARD}.tar.gz" ] ; then return 0; fi
+	if [ -e "portal-${BOARD}.tar.gz" ] ; then return 0; fi
 
-local MACH_CPU=""
+	local MACH_CPU=""
 
-if [ ${ARCH} == "aarch64" ] ; then
-	MACH_CPU="cortex-a72"
-else
-	MACH_CPU="cortex-a15"
-fi
+	if [ ${ARCH} == "aarch64" ] ; then
+		MACH_CPU="cortex-a72"
+	else
+		MACH_CPU="cortex-a15"
+	fi
 
-echo "Booting image builder"
+	echo "Booting image builder"
 
-qemu-system-${QEMU_EMULATOR} \
-	-nographic \
-	-machine virt \
-	-cpu ${MACH_CPU} \
-	-machine accel=tcg \
-	-m 2048 \
-	-bios "${PORTALDIR}/u-boot.bin" \
-	-rtc base=utc,clock=host \
-	-drive if=none,file="${PORTALDIR}/${BOARD}_system.img",id=inst-disk \
-	-device ich9-ahci,id=ahci \
-	-device ide-drive,drive=inst-disk,bus=ahci.0
+	qemu-system-${QEMU_EMULATOR} \
+		-nographic \
+		-machine virt \
+		-cpu ${MACH_CPU} \
+		-machine accel=tcg \
+		-m 2048 \
+		-bios "${PORTALDIR}/u-boot.bin" \
+		-rtc base=utc,clock=host \
+		-drive if=none,file="${PORTALDIR}/${BOARD}_system.img",id=inst-disk \
+		-device ich9-ahci,id=ahci \
+		-device ide-drive,drive=inst-disk,bus=ahci.0
 
-echo "Retrieving image"
-losetup -o 1048576 /dev/loop1 "${PORTALDIR}/${BOARD}_system.img"
-mount /dev/loop1 ${LOOP_MNT}
+	echo "Retrieving image"
+	losetup -o 1048576 /dev/loop1 "${PORTALDIR}/${BOARD}_system.img"
+	mount /dev/loop1 ${LOOP_MNT}
 
-if [ -e "${LOOP_MNT}/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
-	cp "${LOOP_MNT}/alpine-portal-edge-${ARCH}.tar.gz" "portal-${BOARD}.tar.gz"
-fi
+	if [ -e "${LOOP_MNT}/alpine-portal-edge-${ARCH}.tar.gz" ] ; then
+		cp "${LOOP_MNT}/alpine-portal-edge-${ARCH}.tar.gz" "portal-${BOARD}.tar.gz"
+	fi
 
-if [ -e "portal-${BOARD}.tar.gz" ] ; then
-	echo "Done"
-	return 0
-else
-	echo "There was an issue building the PORTAL image"
-	return 1
-fi
-
-}
+	if [ -e "portal-${BOARD}.tar.gz" ] ; then
+		echo "Done"
+		return 0
+	else
+		echo "There was an issue building the PORTAL image"
+		return 1
+	fi
+	}
 
 
 # The script should clean up after itself

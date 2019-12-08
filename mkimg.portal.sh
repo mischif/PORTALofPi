@@ -53,7 +53,7 @@ portal_gen_config() {
 			AARCH64
 		;;
 	esac
-}
+	}
 
 portal_gen_usercfg() {
 	cat <<-USERCFG
@@ -61,7 +61,7 @@ portal_gen_usercfg() {
 		dtparam=audio=off
 		gpu_mem=16
 		USERCFG
-}
+	}
 
 build_portal_config() {
 	portal_gen_cmdline > "${DESTDIR}"/cmdline.txt

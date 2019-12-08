@@ -11,6 +11,7 @@
 ################################################################################
 
 CONFIGS_DIR="/media/sda1/configs"
+tmp="$(mktemp -d)"
 
 HOSTNAME="$1"
 if [ -z "$HOSTNAME" ]; then
@@ -20,7 +21,7 @@ fi
 
 cleanup() {
 	rm -rf "$tmp"
-}
+	}
 
 makefile() {
 	OWNER="$1"
@@ -29,14 +30,13 @@ makefile() {
 	cat > "$FILENAME"
 	chown "$OWNER" "$FILENAME"
 	chmod "$PERMS" "$FILENAME"
-}
+	}
 
 rc_add() {
 	mkdir -p "$tmp"/etc/runlevels/"$2"
 	ln -sf /etc/init.d/"$1" "$tmp"/etc/runlevels/"$2"/"$1"
-}
+	}
 
-tmp="$(mktemp -d)"
 trap cleanup EXIT
 
 mkdir -p "$tmp"/etc
