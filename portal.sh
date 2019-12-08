@@ -53,6 +53,8 @@ cleanup() {
 		rm -f "${PORTALDIR}/${TARBALL}"
 		rm -f "${PORTALDIR}/${BOARD}_stage_2_success"
 	fi
+
+	exit
 	}
 
 stage_0() {
