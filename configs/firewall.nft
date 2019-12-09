@@ -25,7 +25,6 @@ flush ruleset
 create table main
 add chain main input {type filter hook input priority 0; policy drop;}
 add chain main output {type filter hook output priority 0; policy drop;}
-add chain main forward {type filter hook forward priority 0; policy drop;}
 add chain main proxy {type filter hook prerouting priority -150; policy accept;}
 add chain main prerouting {type nat hook prerouting priority -100; policy accept;}
 add chain main postrouting {type nat hook postrouting priority 100; policy accept;}
