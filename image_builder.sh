@@ -35,11 +35,11 @@ EOF
 		http://dl-cdn.alpinelinux.org/alpine/edge/community
 		EOF
 
-	apk update
-	apk upgrade
+	apk -q update
+	apk -q upgrade
 
 	echo "Downloading packages"
-	apk add alpine-sdk build-base apk-tools alpine-conf busybox fakeroot mkinitfs xorriso squashfs-tools
+	apk -q add alpine-sdk build-base apk-tools alpine-conf busybox fakeroot mkinitfs xorriso squashfs-tools
 
 	echo "Preparing build user"
 	adduser --disabled-password -G abuild build
