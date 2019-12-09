@@ -1,4 +1,4 @@
-#!/usr/bin/env -S sh -eu
+#!/usr/bin/env sh
 
 ################################################################################
 ##                     ___  ___  ___ _____ _   _                              ##
@@ -18,8 +18,6 @@ configure_system () {
 	if [ -d "/home/build" ] ; then return 0; fi
 
 	mount -o remount,rw ${TOOLS}
-	chmod +x ${TOOLS}/*.sh
-
 	setup-interfaces -i <<EOF
 auto lo
 auto eth0
@@ -73,6 +71,9 @@ build_image () {
 		echo "There was an issue building the image; exiting image builder"
 	fi
 	}
+
+set -e
+set -u
 
 configure_system
 build_image

@@ -23,13 +23,13 @@ echo '
 PORTALDIR="$( cd "$( dirname "$0" )" && pwd)"
 INITRAM_TMP="${PORTALDIR}/initramfs-tmp"
 SQUASH_TMP="${PORTALDIR}/squashfs-root"
+BOOT_FILES="${PORTALDIR}/boot"
 LOOP_MNT="${PORTALDIR}/mnt"
 
 ARCH=""
 BOARD=""
 LATEST_VERSION=""
 MODEL=0
-QEMU_EMULATOR=""
 IMAGE_TOOLS=""
 TARBALL=""
 
@@ -42,6 +42,7 @@ cleanup() {
 	fi
 
 	rm -rf ${SQUASH_TMP}
+	rm -rf ${BOOT_FILES}
 	rm -rf ${INITRAM_TMP}
 	rm -f "${PORTALDIR}/initramfs-vanilla-orig"
 	rm -f "${PORTALDIR}/${BOARD}_stage_3_success"
@@ -128,14 +129,6 @@ stage_1() {
 ##                                                                            ##
 ################################################################################
 
-	if [ ${ARCH} == "aarch64" ] ; then
-		QEMU_EMULATOR="aarch64"
-		IMAGE_TOOLS="/media/sda1"
-	else
-		QEMU_EMULATOR="arm"
-		IMAGE_TOOLS="media/mmcblk0p1"
-	fi
-
 	mkdir ${LOOP_MNT}
 
 	LATEST_VERSION=$(wget -q -O - "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/${ARCH}/" | sed -n "s|.*>alpine-uboot-\([0-9\.]*\)-${ARCH}.tar.gz<.*|\1|p" | sort -rn | head -n 1)
@@ -159,7 +152,7 @@ stage_2() {
 	if [ -e "${PORTALDIR}/${BOARD}_stage_2_success" ] ; then return 0; fi
 
 	echo "Installing image builder packages"
-	apk -q add squashfs-tools git util-linux coreutils qemu-img parted qemu-system-${QEMU_EMULATOR}
+	apk -q add squashfs-tools git util-linux coreutils qemu-img parted qemu-system-aarch64
 
 
 	if [ -d "${PORTALDIR}/aports" ] ; then
@@ -226,26 +219,36 @@ stage_3() {
 		echo "Preparing tarball for qemu boot"
 		mount /dev/loop1 ${LOOP_MNT}
 		tar -xzf "${PORTALDIR}/${TARBALL}" -C ${LOOP_MNT}
+		local IMAGE_TOOLS=""
 
-		# Extlinux fixes
-		sed -ie 's|APPEND modules=.*|APPEND modules=loop,squashfs,usb-storage,ahci,sd_mod,scsi_mod,ext4,ahci console=ttyAMA0 console=tty1|' "${LOOP_MNT}/extlinux/extlinux.conf"
+		if [ ${ARCH} == "aarch64" ] ; then
+			IMAGE_TOOLS="/media/sda1"
+			local BOOT_MODULES="loop,squashfs,usb-storage,ahci,sd_mod,scsi_mod,ext4,ahci"
+			sed -ie "s|APPEND modules=.*|APPEND modules=${BOOT_MODULES} console=ttyAMA0 console=tty1|" "${LOOP_MNT}/extlinux/extlinux.conf"
 
-		# Initramfs tweaks
-		cp "${LOOP_MNT}/boot/initramfs-vanilla" "${PORTALDIR}/initramfs-vanilla-orig"
-		mkdir ${INITRAM_TMP}
-		( cd ${INITRAM_TMP} && gunzip -c ../initramfs-vanilla-orig  | cpio -i )
+			# Initramfs tweaks
+			cp "${LOOP_MNT}/boot/initramfs-vanilla" "${PORTALDIR}/initramfs-vanilla-orig"
+			mkdir ${INITRAM_TMP}
+			( cd ${INITRAM_TMP} && gunzip -c ../initramfs-vanilla-orig  | cpio -i )
 
-		unsquashfs -q -d ${SQUASH_TMP} "${LOOP_MNT}/boot/modloop-vanilla"
-		# Get kernel version; a bit overkill but it doesn't hurt to protect against multiple version in tarball
-		local KERNEL_VERSION=$(ls -1 ${SQUASH_TMP}/modules/ | grep '^[0-9]' | sort -rn | head -n 1)
-		local SQUASH_DRIVERS="${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers"
-		local INITRD_DRIVERS="${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers"
+			unsquashfs -q -d ${SQUASH_TMP} "${LOOP_MNT}/boot/modloop-vanilla"
+			# Get kernel version; a bit overkill but it doesn't hurt to protect against multiple version in tarball
+			local KERNEL_VERSION=$(ls -1 ${SQUASH_TMP}/modules/ | grep '^[0-9]' | sort -rn | head -n 1)
+			local SQUASH_DRIVERS="${SQUASH_TMP}/modules/${KERNEL_VERSION}/kernel/drivers"
+			local INITRD_DRIVERS="${INITRAM_TMP}/lib/modules/${KERNEL_VERSION}/kernel/drivers"
 
-		cp ${SQUASH_DRIVERS}/ata/ahci.ko ${INITRD_DRIVERS}/ata/
-		cp ${SQUASH_DRIVERS}/ata/libahci* ${INITRD_DRIVERS}/ata/
+			cp ${SQUASH_DRIVERS}/ata/ahci.ko "${INITRD_DRIVERS}/ata/"
+			cp ${SQUASH_DRIVERS}/ata/libahci* "${INITRD_DRIVERS}/ata/"
 
-		depmod -b ${INITRAM_TMP} -F ${SQUASH_TMP}/modules/${KERNEL_VERSION}/modules.symbols ${KERNEL_VERSION}
-		( cd ${INITRAM_TMP} && find . | cpio -H newc -o | gzip -9 > ../mnt/boot/initramfs-vanilla )
+			depmod -b ${INITRAM_TMP} -F ${SQUASH_TMP}/modules/${KERNEL_VERSION}/modules.symbols ${KERNEL_VERSION}
+			( cd ${INITRAM_TMP} && find . | cpio -H newc -o | gzip -9 > ../mnt/boot/initramfs-vanilla )
+		else
+			IMAGE_TOOLS="/media/mmcblk0p1"
+			mkdir ${BOOT_FILES}
+			cp "${LOOP_MNT}/boot/initramfs-vanilla" ${BOOT_FILES}
+			cp "${LOOP_MNT}/boot/vmlinuz-vanilla" ${BOOT_FILES}
+			cp "${LOOP_MNT}/boot/dtbs/vexpress-v2p-ca15-tc1.dtb" ${BOOT_FILES}
+		fi
 
 		echo "Copying tools to ${BOARD} system image"
 		cp -r "${PORTALDIR}/configs" ${LOOP_MNT}
@@ -261,6 +264,9 @@ stage_3() {
 			| sed -e "s|^BOARD=|BOARD=${BOARD}|" \
 			| sed -e "s|^TOOLS=|TOOLS=\"${IMAGE_TOOLS}\"|" \
 			> "${LOOP_MNT}/image_builder.sh"
+
+		chmod 755 ${LOOP_MNT}/aports/scripts/*.sh
+		chmod 755 "${LOOP_MNT}/image_builder.sh"
 
 		# Clean up
 		sync
@@ -285,27 +291,35 @@ stage_4() {
 
 	if [ -e "portal-${BOARD}.tar.gz" ] ; then return 0; fi
 
-	local MACH_CPU=""
-
-	if [ ${ARCH} == "aarch64" ] ; then
-		MACH_CPU="cortex-a72"
-	else
-		MACH_CPU="cortex-a15"
-	fi
-
 	echo "Booting image builder"
 
-	qemu-system-${QEMU_EMULATOR} \
-		-nographic \
-		-machine virt \
-		-cpu ${MACH_CPU} \
-		-machine accel=tcg \
-		-m 2048 \
-		-bios "${PORTALDIR}/u-boot-${ARCH}.bin" \
-		-rtc base=utc,clock=host \
-		-drive if=none,file="${PORTALDIR}/${BOARD}_system.img",id=inst-disk \
-		-device ich9-ahci,id=ahci \
-		-device ide-drive,drive=inst-disk,bus=ahci.0
+	if [ ${ARCH} == "aarch64" ] ; then
+		qemu-system-aarch64 \
+			-nographic \
+			-machine virt \
+			-cpu cortex-a72 \
+			-machine accel=tcg \
+			-m 2048 \
+			-bios "${PORTALDIR}/u-boot-${ARCH}.bin" \
+			-rtc base=utc,clock=host \
+			-drive if=none,file="${PORTALDIR}/${BOARD}_system.img",id=inst-disk,format=raw \
+			-device ich9-ahci,id=ahci \
+			-device ide-drive,drive=inst-disk,bus=ahci.0
+	else
+		qemu-system-aarch64 \
+			-nographic \
+			-machine vexpress-a15 \
+			-cpu cortex-a15 \
+			-m 2048 \
+			-kernel "${BOOT_FILES}/vmlinuz-vanilla" \
+			-initrd "${BOOT_FILES}/initramfs-vanilla" \
+			-dtb "${BOOT_FILES}/vexpress-v2p-ca15-tc1.dtb" \
+			-rtc base=utc,clock=host \
+			-drive if=sd,file="${PORTALDIR}/${BOARD}_system.img",id=work-disk,format=raw \
+			-netdev user,id=mynet \
+			-device virtio-net-device,netdev=mynet \
+			-append 'console=ttyAMA0'
+	fi
 
 	echo "Retrieving image"
 	losetup -o 1048576 /dev/loop1 "${PORTALDIR}/${BOARD}_system.img"
