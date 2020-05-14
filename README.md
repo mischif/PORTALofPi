@@ -86,7 +86,7 @@ While every attempt was made to automate the PORTAL build process, there is an u
 9. Run `apk update && apk upgrade && apk add virtualbox-guest-additions virtualbox-guest-modules-virt` and reboot
 10. Mount the shared folder with `mount -t vboxsf portal /media/portal`
 11. Extract the project using `unzip /media/portal/PORTALofPi-master.zip -d ~`
-12. Copy the wireles config into place with `cp /media/portal/wireless.conf PORTALofPi-master/configs/`
+12. Copy the wireless config into place with `cp /media/portal/wireless.conf PORTALofPi-master/configs/`
 13. Start the build process with `sh PORTALofPi-master/portal.sh`
 14. After about 10 minutes you will boot to another console; log in as root and run `/media/sda1/image_builder.sh` if building an aarch64 image, `/media/mmcblk0p1/image_builder.sh` otherwise
 15. If all goes well, no further interaction is necessary; after about 30 minutes you should be automatically returned to your original console with portal-${BOARD_NAME}.tar.gz in your home directory
